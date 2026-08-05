@@ -1,0 +1,129 @@
+/* BotZXY Custom Styles */
+:root {
+    --primary: #00ff88;
+    --dark: #0a0a0a;
+    --dark-card: #1a1a1a;
+    --border: #333;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', 'Courier New', monospace;
+    background: var(--dark);
+    color: #fff;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--dark); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+/* Animations */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.pulse { animation: pulse 2s infinite; }
+
+@keyframes glow {
+    0% { box-shadow: 0 0 5px rgba(0,255,136,0.1); }
+    50% { box-shadow: 0 0 20px rgba(0,255,136,0.3); }
+    100% { box-shadow: 0 0 5px rgba(0,255,136,0.1); }
+}
+
+.glow { animation: glow 3s infinite; }
+
+/* Cards */
+.card-glow:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 30px rgba(0,255,136,0.05);
+}
+
+/* Status indicators */
+.status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.status-dot.online { background: var(--primary); }
+.status-dot.offline { background: #ff4444; }
+.status-dot.pending { background: #ffaa00; animation: pulse 1s infinite; }
+
+/* Code blocks */
+code, .code-block {
+    background: #2a2a2a;
+    color: var(--primary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+}
+
+/* Tables */
+.table-botzxy {
+    background: var(--dark-card);
+    border-color: var(--border);
+}
+
+.table-botzxy thead th {
+    color: var(--primary);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    border-bottom: 2px solid var(--border);
+}
+
+.table-botzxy tbody tr:hover {
+    background: #2a2a2a;
+}
+
+/* Buttons */
+.btn-botzxy {
+    background: var(--primary);
+    color: #000;
+    border: none;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-botzxy:hover {
+    background: #00cc66;
+    color: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(0,255,136,0.2);
+}
+
+.btn-outline-botzxy {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.btn-outline-botzxy:hover {
+    background: var(--primary);
+    color: #000;
+}
+
+/* Toast customization */
+.toast-botzxy {
+    background: var(--dark-card);
+    border: 1px solid var(--primary);
+}
+
+.toast-botzxy .toast-header {
+    background: var(--dark-card);
+    color: var(--primary);
+    border-bottom: 1px solid var(--border);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar { min-height: auto; }
+}

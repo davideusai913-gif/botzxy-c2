@@ -308,6 +308,105 @@ def upload_screenshot(device_id):
     
     return jsonify({'status': 'saved'})
 
+@app.route('/api/stats', methods=['GET'])
+@login_required
+def get_stats():
+    conn = get_db()
+    
+    # Totale dispositivi
+    total = conn.execute('SELECT COUNT(*) as count FROM devices').fetchone()['count']
+    
+    # Online
+    online = conn.execute('SELECT COUNT(*) as count FROM devices WHERE is_online = 1').fetchone()['count']
+    
+    # Captures
+    captures = conn.execute('SELECT COUNT(*) as count FROM captures').fetchone()['count']
+    
+    # Commands
+    commands = conn.execute('SELECT COUNT(*) as count FROM commands').fetchone()['count']
+    
+    conn.close()
+    
+    return jsonify({
+        'total_devices': total,
+        'online_devices': online,
+        'total_captures': captures,
+        'total_commands': commands
+    })
+
+@app.route('/api/chart/activity', methods=['GET'])
+@login_required
+def get_activity_chart():
+    conn = get_db()
+    
+    # Attività ultime 24 ore (raggruppate per ora)
+    activity = conn.execute('''
+        SELECT 
+            strftime('%H:00', last_seen) as hour,
+            COUNT(*) as count
+        FROM devices
+        WHERE last_seen >= datetime('now', '-24 hours')
+        GROUP BY hour
+        ORDER BY hour
+    ''').fetchall()
+    
+    conn.close()
+    
+    # Prepara i dati per il grafico
+    hours = ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00']
+    counts = {row['hour']: row['count'] for row in activity}
+    data = [counts.get(h, 0) for h in hours]
+    
+    return jsonify({
+        'labels': hours,
+        'data': data
+    })
+
+@app.route('/api/chart/platforms', methods=['GET'])
+@login_required
+def get_platform_chart():
+    conn = get_db()
+    
+    platforms = conn.execute('''
+        SELECT 
+            platform,
+            COUNT(*) as count
+        FROM devices
+        GROUP BY platform
+    ''').fetchall()
+    
+    conn.close()
+    
+    # Mappa piattaforme
+    platform_map = {
+        'windows': 'Windows',
+        'android': 'Android',
+        'ios': 'iOS',
+        'linux': 'Linux',
+        'macos': 'macOS'
+    }
+    
+    labels = []
+    data = []
+    colors = ['#7c3aed', '#22d3ee', '#f472b6', '#34d399', '#f59e0b']
+    
+    for idx, row in enumerate(platforms):
+        platform = row['platform'].lower()
+        labels.append(platform_map.get(platform, platform))
+        data.append(row['count'])
+    
+    # Se non ci sono dati, mostra esempio vuoto
+    if not data:
+        labels = ['Nessun dispositivo']
+        data = [1]
+        colors = ['rgba(255,255,255,0.1)']
+    
+    return jsonify({
+        'labels': labels,
+        'data': data,
+        'colors': colors[:len(labels)]
+    })
+
 # ---- ADMIN SETUP ----
 def setup_admin_user():
     try:

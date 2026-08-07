@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>BotZXY · Neon C2</title>
+    <title>BotZXY</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     <style>
@@ -97,6 +97,37 @@
             letter-spacing: 0.3em;
             margin-bottom: 2.2rem;
             font-weight: 600;
+        }
+
+        /* ---- ERROR MESSAGE ---- */
+        .error-container {
+            margin-bottom: 1.2rem;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #f87171;
+            padding: 0.8rem 1rem;
+            border-radius: 14px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .error-message i {
+            font-size: 1.1rem;
+            color: #f87171;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
         }
 
         /* ---- FORM ---- */
@@ -214,6 +245,17 @@
             transform: translateX(4px) scale(1.1);
         }
 
+        /* ---- DISABLED BUTTON ---- */
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-login:disabled::before {
+            opacity: 0 !important;
+        }
+
         /* ---- FOOTER ---- */
         .footer {
             margin-top: 2.2rem;
@@ -260,6 +302,10 @@
             .brand-icon {
                 font-size: 2rem;
             }
+            .error-message {
+                font-size: 0.75rem;
+                padding: 0.6rem 0.8rem;
+            }
         }
     </style>
 </head>
@@ -271,14 +317,25 @@
             <span class="brand-text">Bot<span>ZXY</span></span>
         </div>
         <br>
+        <br>
+
+        <!-- ERROR MESSAGE -->
+        {% if error %}
+        <div class="error-container">
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>{{ error }}</span>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Form -->
-        <form method="POST" action="/login">
+        <form method="POST" action="/login" id="loginForm">
             <div class="form-group">
                 <label class="input-label"><i class="fas fa-user-astronaut" style="margin-right: 6px;"></i> Username</label>
                 <div class="input-wrapper">
                     <span class="icon"><i class="fas fa-user"></i></span>
-                    <input type="text" name="username" placeholder="admin" required />
+                    <input type="text" name="username" placeholder="Inserisci username" required autofocus />
                 </div>
             </div>
 
@@ -290,7 +347,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-login">
+            <button type="submit" class="btn-login" id="loginBtn">
                 <span>
                     <i class="fas fa-arrow-right-to-bracket"></i>
                     ACCEDI AL DASHBOARD
@@ -305,5 +362,19 @@
             <span style="color: rgba(255,255,255,0.1);">v2.0</span>
         </div>
     </div>
+
+    <script>
+        // Disabilita il pulsante dopo il submit per evitare doppi click
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Accesso in corso...</span>';
+            // Riabilita dopo 5 secondi se la pagina non si ricarica
+            setTimeout(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<span><i class="fas fa-arrow-right-to-bracket"></i> ACCEDI AL DASHBOARD</span>';
+            }, 5000);
+        });
+    </script>
 </body>
 </html>

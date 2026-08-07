@@ -2,9 +2,7 @@ services:
   - type: web
     name: botzxy-c2
     runtime: python
-    buildCommand: |
-      pip install -r requirements.txt
-      python init_db.py
+    buildCommand: pip install -r requirements.txt && python setup_db.py
     startCommand: gunicorn app:app
     envVars:
       - key: SECRET_KEY

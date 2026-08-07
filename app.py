@@ -299,15 +299,22 @@ def get_platform_chart():
     return jsonify({'labels': labels, 'data': data, 'colors': colors[:len(labels)]})
 
 # ============ ADMIN SETUP ============
+
 def setup_admin_user():
-    conn = get_db()
-    admin = conn.execute('SELECT * FROM users WHERE username = "admin"').fetchone()
-    if not admin:
-        api_key = hashlib.sha256(os.urandom(32)).hexdigest()
-        conn.execute('INSERT INTO users (username, password_hash, api_key) VALUES (?, ?, ?)', ('admin', hashlib.sha256('BotZXY2026!'.encode()).hexdigest(), api_key))
-        conn.commit()
-        print('[+] Admin created: admin / BotZXY2026!')
-    conn.close()
+    try:
+        conn = get_db()
+        admin = conn.execute('SELECT * FROM users WHERE username = "BotZXY-Admin"').fetchone()
+        if not admin:
+            api_key = hashlib.sha256(os.urandom(32)).hexdigest()
+            conn.execute('''
+                INSERT INTO users (username, password_hash, api_key)
+                VALUES (?, ?, ?)
+            ''', ('BotZXY-Admin', hashlib.sha256('35£t}nSBzoA%M#4T\e<'.encode()).hexdigest(), api_key))
+            conn.commit()
+            print('[+] Admin created: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
+        conn.close()
+    except Exception as e:
+        print(f"[-] Admin creation error: {e}")
 
 # ============ ERROR HANDLER ============
 @app.errorhandler(404)

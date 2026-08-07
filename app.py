@@ -6,8 +6,13 @@ import sqlite3
 import json
 import os
 import hashlib
+import time
 from datetime import datetime
 import werkzeug
+
+# ============ SICUREZZA LOGIN ============
+LOGIN_ATTEMPTS = {}
+MAX_ATTEMPTS = 5
 
 # FIX per Werkzeug 2.2.3 con Flask-Login
 if not hasattr(werkzeug.urls, 'url_decode'):
@@ -61,16 +66,63 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    error = None
+    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        
+        # Controlla se l'utente è bloccato
+        if username in LOGIN_ATTEMPTS:
+            user_attempts = LOGIN_ATTEMPTS[username]
+            
+            if user_attempts.get('blocked_until') and time.time() < user_attempts['blocked_until']:
+                remaining = int(user_attempts['blocked_until'] - time.time())
+                minutes = remaining // 60
+                seconds = remaining % 60
+                error = f"🚫 Account bloccato. Riprova tra {minutes}m {seconds}s"
+                # Mostra l'errore anche se il metodo è POST
+                return render_template('login.html', error=error)
+            
+            if user_attempts.get('blocked_until') and time.time() >= user_attempts['blocked_until']:
+                user_attempts['count'] = 0
+                user_attempts['blocked_until'] = None
+        
+        # Verifica credenziali
         conn = get_db()
         user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         conn.close()
+        
         if user and hashlib.sha256(password.encode()).hexdigest() == user['password_hash']:
+            # Login riuscito
+            if username in LOGIN_ATTEMPTS:
+                LOGIN_ATTEMPTS[username]['count'] = 0
+                LOGIN_ATTEMPTS[username]['blocked_until'] = None
             login_user(User(user['id'], user['username'], user['api_key']))
             return render_template('dashboard.html')
-    return render_template('login.html')
+        else:
+            # Login fallito
+            if username not in LOGIN_ATTEMPTS:
+                LOGIN_ATTEMPTS[username] = {'count': 0, 'blocked_until': None}
+            
+            LOGIN_ATTEMPTS[username]['count'] += 1
+            attempts_used = LOGIN_ATTEMPTS[username]['count']
+            attempts_left = MAX_ATTEMPTS - attempts_used
+            
+            if attempts_used >= MAX_ATTEMPTS:
+                block_level = (attempts_used - 1) // MAX_ATTEMPTS
+                block_minutes = 2 * (2 ** block_level)
+                block_seconds = block_minutes * 60
+                LOGIN_ATTEMPTS[username]['blocked_until'] = time.time() + block_seconds
+                
+                error = f"🚫 Troppi tentativi falliti. Account bloccato per {block_minutes} minuti."
+                return render_template('login.html', error=error)
+            else:
+                error = f"❌ Credenziali errate. Tentativi rimasti: {attempts_left}"
+                return render_template('login.html', error=error)
+    
+    # GET request o errore
+    return render_template('login.html', error=error)
 
 @app.route('/dashboard')
 @login_required
@@ -299,7 +351,6 @@ def get_platform_chart():
     return jsonify({'labels': labels, 'data': data, 'colors': colors[:len(labels)]})
 
 # ============ ADMIN SETUP ============
-
 def setup_admin_user():
     try:
         conn = get_db()
@@ -315,6 +366,56 @@ def setup_admin_user():
         conn.close()
     except Exception as e:
         print(f"[-] Admin creation error: {e}")
+
+# ============ GESTIONE TENTATIVI LOGIN ============
+# ============ GESTIONE TENTATIVI LOGIN ============
+
+@app.route('/admin/reset_attempts/<username>', methods=['POST'])
+@login_required
+def reset_login_attempts(username):
+    """Resetta i tentativi di login per un utente (solo admin)"""
+    conn = get_db()
+    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    conn.close()
+
+    # Verifica che l'utente sia admin
+    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
+        return jsonify({'error': 'Accesso negato'}), 403
+
+    if username in LOGIN_ATTEMPTS:
+        LOGIN_ATTEMPTS[username]['count'] = 0
+        LOGIN_ATTEMPTS[username]['blocked_until'] = None
+        return jsonify({'status': 'reset', 'username': username})
+    
+    return jsonify({'error': 'Utente non trovato'}), 404
+
+@app.route('/admin/login_attempts', methods=['GET'])
+@login_required
+def get_login_attempts():
+    """Mostra i tentativi di login (solo admin)"""
+    conn = get_db()
+    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    conn.close()
+
+    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
+        return jsonify({'error': 'Accesso negato'}), 403
+
+    result = {}
+    for username, data in LOGIN_ATTEMPTS.items():
+        blocked_until = data.get('blocked_until')
+        if blocked_until:
+            remaining = int(blocked_until - time.time())
+            if remaining > 0:
+                result[username] = {
+                    'attempts': data['count'],
+                    'blocked_for': f"{remaining // 60}m {remaining % 60}s"
+                }
+            else:
+                result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
+        else:
+            result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
+    
+    return jsonify(result)
 
 # ============ ERROR HANDLER ============
 @app.errorhandler(404)

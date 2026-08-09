@@ -132,6 +132,7 @@ def login():
     
     return render_template('login.html', error=error)
 
+# ============ PAGINE ============
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -143,12 +144,6 @@ def logout():
     log_action('system', 'logout', f'Logout di {current_user.username}')
     logout_user()
     return index()
-
-# ============ PAGINE ============
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    return render_template('dashboard.html')
 
 @app.route('/logs')
 @login_required
@@ -448,7 +443,6 @@ def export_logs():
 @login_required
 def get_settings():
     conn = get_db()
-    # Aggiungi colonne se non esistono
     try:
         conn.execute('ALTER TABLE users ADD COLUMN theme TEXT DEFAULT "dark"')
     except:

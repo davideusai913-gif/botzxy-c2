@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO
 from flask_cors import CORS
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import sqlite3
 import json
 import os
@@ -72,7 +72,6 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # Controlla se l'utente è bloccato
         if username in LOGIN_ATTEMPTS:
             user_attempts = LOGIN_ATTEMPTS[username]
             
@@ -81,27 +80,23 @@ def login():
                 minutes = remaining // 60
                 seconds = remaining % 60
                 error = f"🚫 Account bloccato. Riprova tra {minutes}m {seconds}s"
-                # Mostra l'errore anche se il metodo è POST
                 return render_template('login.html', error=error)
             
             if user_attempts.get('blocked_until') and time.time() >= user_attempts['blocked_until']:
                 user_attempts['count'] = 0
                 user_attempts['blocked_until'] = None
         
-        # Verifica credenziali
         conn = get_db()
         user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         conn.close()
         
         if user and hashlib.sha256(password.encode()).hexdigest() == user['password_hash']:
-            # Login riuscito
             if username in LOGIN_ATTEMPTS:
                 LOGIN_ATTEMPTS[username]['count'] = 0
                 LOGIN_ATTEMPTS[username]['blocked_until'] = None
             login_user(User(user['id'], user['username'], user['api_key']))
             return render_template('dashboard.html')
         else:
-            # Login fallito
             if username not in LOGIN_ATTEMPTS:
                 LOGIN_ATTEMPTS[username] = {'count': 0, 'blocked_until': None}
             
@@ -121,7 +116,6 @@ def login():
                 error = f"❌ Credenziali errate. Tentativi rimasti: {attempts_left}"
                 return render_template('login.html', error=error)
     
-    # GET request o errore
     return render_template('login.html', error=error)
 
 @app.route('/dashboard')
@@ -134,6 +128,17 @@ def dashboard():
 def logout():
     logout_user()
     return index()
+
+# ============ PAGINE LOGS E SETTINGS ============
+@app.route('/logs')
+@login_required
+def logs_page():
+    return render_template('logs.html')
+
+@app.route('/settings')
+@login_required
+def settings_page():
+    return render_template('settings.html')
 
 # ============ API DEVICES ============
 @app.route('/api/devices', methods=['GET'])
@@ -350,78 +355,10 @@ def get_platform_chart():
     colors = ['#7c3aed', '#22d3ee', '#f472b6', '#34d399', '#f59e0b']
     return jsonify({'labels': labels, 'data': data, 'colors': colors[:len(labels)]})
 
-# ============ ADMIN SETUP ============
-def setup_admin_user():
-    try:
-        conn = get_db()
-        admin = conn.execute('SELECT * FROM users WHERE username = "BotZXY-Admin"').fetchone()
-        if not admin:
-            api_key = hashlib.sha256(os.urandom(32)).hexdigest()
-            conn.execute('''
-                INSERT INTO users (username, password_hash, api_key)
-                VALUES (?, ?, ?)
-            ''', ('BotZXY-Admin', hashlib.sha256('35£t}nSBzoA%M#4T\e<'.encode()).hexdigest(), api_key))
-            conn.commit()
-            print('[+] Admin created: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
-        conn.close()
-    except Exception as e:
-        print(f"[-] Admin creation error: {e}")
-
-# ============ GESTIONE TENTATIVI LOGIN ============
-# ============ GESTIONE TENTATIVI LOGIN ============
-
-@app.route('/admin/reset_attempts/<username>', methods=['POST'])
-@login_required
-def reset_login_attempts(username):
-    """Resetta i tentativi di login per un utente (solo admin)"""
-    conn = get_db()
-    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
-    conn.close()
-
-    # Verifica che l'utente sia admin
-    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-
-    if username in LOGIN_ATTEMPTS:
-        LOGIN_ATTEMPTS[username]['count'] = 0
-        LOGIN_ATTEMPTS[username]['blocked_until'] = None
-        return jsonify({'status': 'reset', 'username': username})
-    
-    return jsonify({'error': 'Utente non trovato'}), 404
-
-@app.route('/admin/login_attempts', methods=['GET'])
-@login_required
-def get_login_attempts():
-    """Mostra i tentativi di login (solo admin)"""
-    conn = get_db()
-    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
-    conn.close()
-
-    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-
-    result = {}
-    for username, data in LOGIN_ATTEMPTS.items():
-        blocked_until = data.get('blocked_until')
-        if blocked_until:
-            remaining = int(blocked_until - time.time())
-            if remaining > 0:
-                result[username] = {
-                    'attempts': data['count'],
-                    'blocked_for': f"{remaining // 60}m {remaining % 60}s"
-                }
-            else:
-                result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
-        else:
-            result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
-    
-    return jsonify(result)
-
 # ============ LOGS ============
 @app.route('/api/logs', methods=['GET'])
 @login_required
 def get_logs():
-    """Recupera tutti i log del sistema"""
     limit = request.args.get('limit', 100, type=int)
     device_id = request.args.get('device_id', None)
     
@@ -447,9 +384,7 @@ def get_logs():
 @app.route('/api/logs/clear', methods=['POST'])
 @login_required
 def clear_logs():
-    """Cancella tutti i log (solo admin)"""
     conn = get_db()
-    # Verifica che sia admin
     current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
     if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
         conn.close()
@@ -463,7 +398,6 @@ def clear_logs():
 @app.route('/api/logs/export', methods=['GET'])
 @login_required
 def export_logs():
-    """Esporta i log in formato JSON"""
     conn = get_db()
     logs = conn.execute('SELECT * FROM logs ORDER BY timestamp DESC').fetchall()
     conn.close()
@@ -473,8 +407,20 @@ def export_logs():
 @app.route('/api/settings', methods=['GET'])
 @login_required
 def get_settings():
-    """Recupera le impostazioni dell'utente"""
     conn = get_db()
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN theme TEXT DEFAULT "dark"')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN language TEXT DEFAULT "it"')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN notifications TEXT DEFAULT "on"')
+    except:
+        pass
+    
     settings = conn.execute('''
         SELECT theme, language, notifications FROM users WHERE id = ?
     ''', (current_user.id,)).fetchone()
@@ -491,14 +437,12 @@ def get_settings():
 @app.route('/api/settings', methods=['POST'])
 @login_required
 def save_settings():
-    """Salva le impostazioni dell'utente"""
     data = request.json
     theme = data.get('theme', 'dark')
     language = data.get('language', 'it')
     notifications = data.get('notifications', 'on')
     
     conn = get_db()
-    # Aggiungi colonne se non esistono
     try:
         conn.execute('ALTER TABLE users ADD COLUMN theme TEXT DEFAULT "dark"')
     except:
@@ -519,15 +463,67 @@ def save_settings():
     conn.close()
     return jsonify({'status': 'saved'})
 
-@app.route('/logs')
-@login_required
-def logs_page():
-    return render_template('logs.html')
+# ============ ADMIN SETUP ============
+def setup_admin_user():
+    try:
+        conn = get_db()
+        admin = conn.execute('SELECT * FROM users WHERE username = "BotZXY-Admin"').fetchone()
+        if not admin:
+            api_key = hashlib.sha256(os.urandom(32)).hexdigest()
+            conn.execute('''
+                INSERT INTO users (username, password_hash, api_key)
+                VALUES (?, ?, ?)
+            ''', ('BotZXY-Admin', hashlib.sha256('35£t}nSBzoA%M#4T\e<'.encode()).hexdigest(), api_key))
+            conn.commit()
+            print('[+] Admin created: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
+        conn.close()
+    except Exception as e:
+        print(f"[-] Admin creation error: {e}")
 
-@app.route('/settings')
+# ============ GESTIONE TENTATIVI LOGIN ============
+@app.route('/admin/reset_attempts/<username>', methods=['POST'])
 @login_required
-def settings_page():
-    return render_template('settings.html')
+def reset_login_attempts(username):
+    conn = get_db()
+    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    conn.close()
+
+    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
+        return jsonify({'error': 'Accesso negato'}), 403
+
+    if username in LOGIN_ATTEMPTS:
+        LOGIN_ATTEMPTS[username]['count'] = 0
+        LOGIN_ATTEMPTS[username]['blocked_until'] = None
+        return jsonify({'status': 'reset', 'username': username})
+    
+    return jsonify({'error': 'Utente non trovato'}), 404
+
+@app.route('/admin/login_attempts', methods=['GET'])
+@login_required
+def get_login_attempts():
+    conn = get_db()
+    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    conn.close()
+
+    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
+        return jsonify({'error': 'Accesso negato'}), 403
+
+    result = {}
+    for username, data in LOGIN_ATTEMPTS.items():
+        blocked_until = data.get('blocked_until')
+        if blocked_until:
+            remaining = int(blocked_until - time.time())
+            if remaining > 0:
+                result[username] = {
+                    'attempts': data['count'],
+                    'blocked_for': f"{remaining // 60}m {remaining % 60}s"
+                }
+            else:
+                result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
+        else:
+            result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
+    
+    return jsonify(result)
 
 # ============ ERROR HANDLER ============
 @app.errorhandler(404)

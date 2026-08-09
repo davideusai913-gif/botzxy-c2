@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BotZXY · Logs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0b0b1a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+        }
+        /* Sidebar (stessa della dashboard) */
+        .sidebar {
+            width: 220px;
+            background: rgba(12,12,35,0.92);
+            backdrop-filter: blur(24px);
+            border-right: 1px solid rgba(255,255,255,0.04);
+            padding: 1.8rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 100;
+        }
+        .sidebar .logo {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .sidebar .logo i { -webkit-text-fill-color: initial; color: #8b5cf6; }
+        .sidebar .logo span { -webkit-text-fill-color: rgba(255,255,255,0.1); }
+        .sidebar .nav { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; padding-top: 1.2rem; }
+        .sidebar .nav a {
+            display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 1rem;
+            border-radius: 12px; color: rgba(255,255,255,0.3); text-decoration: none;
+            font-size: 0.85rem; font-weight: 500; transition: all 0.3s;
+        }
+        .sidebar .nav a i { font-size: 1.1rem; min-width: 24px; }
+        .sidebar .nav a:hover { color: #fff; background: rgba(139,92,246,0.08); }
+        .sidebar .nav a.active { color: #8b5cf6; background: rgba(139,92,246,0.1); }
+        .sidebar .nav a .badge-nav { margin-left: auto; background: rgba(139,92,246,0.15); color: #8b5cf6; font-size: 0.6rem; padding: 0.1rem 0.6rem; border-radius: 40px; }
+        .sidebar .footer-sidebar {
+            font-size: 0.6rem; color: rgba(255,255,255,0.06); text-align: center;
+            padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.04);
+            letter-spacing: 0.05em;
+        }
+        .sidebar .footer-sidebar .status-dot {
+            display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+            background: #34d399; box-shadow: 0 0 12px rgba(52,211,153,0.4);
+            animation: pulse 2s ease-in-out infinite; margin-right: 6px;
+        }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+        .main { margin-left: 220px; padding: 1.8rem 2.2rem; width: 100%; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 0.8rem; }
+        .topbar h1 { font-size: 1.4rem; font-weight: 600; }
+        .topbar h1 span { color: rgba(255,255,255,0.2); font-weight: 400; }
+        .topbar .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .btn-ghost {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.4); padding: 0.4rem 1rem; border-radius: 40px;
+            cursor: pointer; font-size: 0.75rem; transition: all 0.3s;
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .btn-ghost:hover { background: rgba(139,92,246,0.08); color: #fff; border-color: rgba(139,92,246,0.2); }
+        .btn-danger-ghost { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.1); color: #f87171; }
+        .btn-danger-ghost:hover { background: rgba(239,68,68,0.15); color: #fff; border-color: rgba(239,68,68,0.2); }
+
+        .card {
+            background: rgba(18,18,40,0.45); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.04); border-radius: 24px;
+            padding: 1.5rem;
+        }
+        .card .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .card .header h2 { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
+        .card .header h2 i { color: #8b5cf6; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        thead th { text-align: left; padding: 0.5rem 0.4rem; color: rgba(255,255,255,0.2); font-weight: 600; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        tbody td { padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.02); vertical-align: middle; }
+        tbody tr:hover { background: rgba(255,255,255,0.02); }
+        .log-time { font-size: 0.65rem; color: rgba(255,255,255,0.2); white-space: nowrap; }
+        .log-action { font-weight: 500; }
+        .log-details { color: rgba(255,255,255,0.4); font-size: 0.75rem; }
+        .empty-state { text-align: center; padding: 2.5rem; color: rgba(255,255,255,0.1); }
+        .empty-state i { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+        .badge-log { font-size: 0.55rem; padding: 0.1rem 0.5rem; border-radius: 40px; font-weight: 600; }
+        .badge-log.info { background: rgba(59,130,246,0.12); color: #60a5fa; }
+        .badge-log.success { background: rgba(52,211,153,0.12); color: #34d399; }
+        .badge-log.warning { background: rgba(245,158,11,0.12); color: #fbbf24; }
+        .badge-log.danger { background: rgba(239,68,68,0.12); color: #f87171; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 10px; }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); width: 240px; }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; padding: 1rem; }
+            .topbar { flex-direction: column; align-items: stretch; }
+            .topbar .actions { justify-content: stretch; }
+            .btn-ghost { justify-content: center; }
+        }
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
+        .sidebar-overlay.active { display: block; }
+        .hamburger { display: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); color: #fff; padding: 0.4rem 0.8rem; border-radius: 10px; cursor: pointer; }
+        @media (max-width: 768px) { .hamburger { display: block; } }
+    </style>
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="logo"><i class="fas fa-robot"></i> Bot<span>ZXY</span></div>
+        <nav class="nav">
+            <a href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="#"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
+            <a href="#"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
+            <a href="#"><i class="fas fa-chart-pie"></i> Analytics</a>
+            <a href="#" class="active"><i class="fas fa-history"></i> Logs</a>
+            <a href="/settings"><i class="fas fa-cog"></i> Settings</a>
+            <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+        <div class="footer-sidebar"><span class="status-dot"></span> Sistema attivo · <span id="footerTime"></span></div>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div style="display:flex;align-items:center;gap:0.8rem;">
+                <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <h1>Logs <span>| Cronologia eventi</span></h1>
+            </div>
+            <div class="actions">
+                <button class="btn-ghost" onclick="refreshLogs()"><i class="fas fa-sync"></i> Aggiorna</button>
+                <button class="btn-ghost" onclick="exportLogs()"><i class="fas fa-download"></i> Esporta</button>
+                <button class="btn-ghost btn-danger-ghost" onclick="clearLogs()"><i class="fas fa-trash"></i> Cancella tutto</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="header">
+                <h2><i class="fas fa-list"></i> Registro eventi</h2>
+                <span style="font-size:0.7rem; color:rgba(255,255,255,0.2);" id="logCount">0 eventi</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Ora</th>
+                            <th>Dispositivo</th>
+                            <th>Azione</th>
+                            <th>Dettagli</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        function refreshLogs() {
+            const tbody = document.getElementById('logsBody');
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:rgba(255,255,255,0.1);"><i class="fas fa-spinner fa-spin"></i> Caricamento...</td></tr>`;
+
+            fetch('/api/logs?limit=200')
+                .then(res => res.json())
+                .then(data => {
+                    renderLogs(data);
+                    document.getElementById('logCount').textContent = data.length + ' eventi';
+                })
+                .catch(() => {
+                    tbody.innerHTML = `<tr><td colspan="4" class="empty-state"><i class="fas fa-history"></i> Errore di connessione</td></tr>`;
+                });
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logsBody');
+            if (!logs || logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i> Nessun log disponibile</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            const actionColors = {
+                'register': 'success',
+                'command_sent': 'info',
+                'screenshot_captured': 'warning',
+                'webcam_captured': 'warning',
+                'mic_recorded': 'warning',
+                'keylog_captured': 'danger',
+                'passwords_extracted': 'danger',
+                'wifi_extracted': 'info',
+                'clipboard_captured': 'info',
+                'mouse_interaction': 'info',
+                'file_list': 'info',
+                'cookies_extracted': 'danger',
+                'login_failed': 'danger',
+                'login_success': 'success'
+            };
+
+            logs.forEach(log => {
+                const time = new Date(log.timestamp).toLocaleString();
+                const action = log.action || 'unknown';
+                const colorClass = actionColors[action] || 'info';
+                const device = log.device_id ? log.device_id.substring(0, 12) + '...' : 'Sistema';
+
+                html += `
+                <tr>
+                    <td class="log-time">${time}</td>
+                    <td style="font-size:0.7rem;color:rgba(255,255,255,0.3);">${device}</td>
+                    <td><span class="badge-log ${colorClass}">${action.replace(/_/g,' ')}</span></td>
+                    <td class="log-details">${log.details || ''}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function exportLogs() {
+            fetch('/api/logs/export')
+                .then(res => res.json())
+                .then(data => {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `logs_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                })
+                .catch(() => alert('Errore esportazione'));
+        }
+
+        function clearLogs() {
+            if (confirm('⚠️ Cancellare TUTTI i log? Questa operazione è irreversibile.')) {
+                fetch('/api/logs/clear', {method: 'POST'})
+                    .then(() => { refreshLogs(); alert('✅ Log cancellati'); })
+                    .catch(() => alert('❌ Errore'));
+            }
+        }
+
+        function updateTime() {
+            document.getElementById('footerTime').textContent = new Date().toLocaleTimeString('it-IT');
+        }
+
+        // Aggiorna badges
+        fetch('/api/stats')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('deviceBadge').textContent = data.total_devices || 0;
+                document.getElementById('captureBadge').textContent = data.total_captures || 0;
+            });
+
+        refreshLogs();
+        setInterval(refreshLogs, 30000);
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>

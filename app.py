@@ -417,6 +417,118 @@ def get_login_attempts():
     
     return jsonify(result)
 
+# ============ LOGS ============
+@app.route('/api/logs', methods=['GET'])
+@login_required
+def get_logs():
+    """Recupera tutti i log del sistema"""
+    limit = request.args.get('limit', 100, type=int)
+    device_id = request.args.get('device_id', None)
+    
+    conn = get_db()
+    if device_id:
+        logs = conn.execute('''
+            SELECT id, device_id, action, details, timestamp 
+            FROM logs 
+            WHERE device_id = ? 
+            ORDER BY timestamp DESC 
+            LIMIT ?
+        ''', (device_id, limit)).fetchall()
+    else:
+        logs = conn.execute('''
+            SELECT id, device_id, action, details, timestamp 
+            FROM logs 
+            ORDER BY timestamp DESC 
+            LIMIT ?
+        ''', (limit,)).fetchall()
+    conn.close()
+    return jsonify([dict(l) for l in logs])
+
+@app.route('/api/logs/clear', methods=['POST'])
+@login_required
+def clear_logs():
+    """Cancella tutti i log (solo admin)"""
+    conn = get_db()
+    # Verifica che sia admin
+    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
+        conn.close()
+        return jsonify({'error': 'Accesso negato'}), 403
+    
+    conn.execute('DELETE FROM logs')
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'cleared'})
+
+@app.route('/api/logs/export', methods=['GET'])
+@login_required
+def export_logs():
+    """Esporta i log in formato JSON"""
+    conn = get_db()
+    logs = conn.execute('SELECT * FROM logs ORDER BY timestamp DESC').fetchall()
+    conn.close()
+    return jsonify([dict(l) for l in logs])
+
+# ============ IMPOSTAZIONI ============
+@app.route('/api/settings', methods=['GET'])
+@login_required
+def get_settings():
+    """Recupera le impostazioni dell'utente"""
+    conn = get_db()
+    settings = conn.execute('''
+        SELECT theme, language, notifications FROM users WHERE id = ?
+    ''', (current_user.id,)).fetchone()
+    conn.close()
+    
+    if settings:
+        return jsonify({
+            'theme': settings['theme'] or 'dark',
+            'language': settings['language'] or 'it',
+            'notifications': settings['notifications'] or 'on'
+        })
+    return jsonify({'theme': 'dark', 'language': 'it', 'notifications': 'on'})
+
+@app.route('/api/settings', methods=['POST'])
+@login_required
+def save_settings():
+    """Salva le impostazioni dell'utente"""
+    data = request.json
+    theme = data.get('theme', 'dark')
+    language = data.get('language', 'it')
+    notifications = data.get('notifications', 'on')
+    
+    conn = get_db()
+    # Aggiungi colonne se non esistono
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN theme TEXT DEFAULT "dark"')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN language TEXT DEFAULT "it"')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN notifications TEXT DEFAULT "on"')
+    except:
+        pass
+    
+    conn.execute('''
+        UPDATE users SET theme = ?, language = ?, notifications = ? WHERE id = ?
+    ''', (theme, language, notifications, current_user.id))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'saved'})
+
+@app.route('/logs')
+@login_required
+def logs_page():
+    return render_template('logs.html')
+
+@app.route('/settings')
+@login_required
+def settings_page():
+    return render_template('settings.html')
+
 # ============ ERROR HANDLER ============
 @app.errorhandler(404)
 def not_found(error):

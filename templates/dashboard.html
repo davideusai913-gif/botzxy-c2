@@ -942,102 +942,116 @@
         }
 
         // ============================================================
-        //  CHARTS CON DATI REALI
-        // ============================================================
-        function refreshCharts() {
-            // Activity Chart
-            fetch('/api/chart/activity')
-                .then(res => res.json())
-                .then(data => {
-                    const ctx = document.getElementById('activityChart').getContext('2d');
-                    if (activityChart) activityChart.destroy();
+//  REFRESH DATI REALI
+// ============================================================
+function refreshDevices() {
+    const tbody = document.getElementById('devicesBody');
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:rgba(255,255,255,0.1);">
+        <i class="fas fa-spinner fa-spin" style="font-size:1.2rem;"></i> Caricamento...
+    </tr>`;
 
-                    activityChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: data.labels || [],
-                            datasets: [{
-                                label: 'Dispositivi attivi',
-                                data: data.data || [],
-                                borderColor: '#8b5cf6',
-                                backgroundColor: 'rgba(139, 92, 246, 0.06)',
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 2,
-                                pointBackgroundColor: '#8b5cf6',
-                                borderWidth: 2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            plugins: {
-                                legend: {
-                                    labels: {
-                                        color: 'rgba(255,255,255,0.3)',
-                                        font: { size: 9 }
-                                    }
-                                }
-                            },
-                            scales: {
-                                x: {
-                                    ticks: {
-                                        color: 'rgba(255,255,255,0.12)',
-                                        font: { size: 8 },
-                                        maxTicksLimit: 12
-                                    },
-                                    grid: { color: 'rgba(255,255,255,0.02)' }
-                                },
-                                y: {
-                                    ticks: {
-                                        color: 'rgba(255,255,255,0.12)',
-                                        font: { size: 8 },
-                                        stepSize: 1
-                                    },
-                                    grid: { color: 'rgba(255,255,255,0.02)' }
-                                }
-                            }
-                        }
-                    });
-                })
-                .catch(() => console.log('Activity chart: nessun dato'));
+    fetch('/api/devices')
+        .then(res => res.json())
+        .then(data => {
+            devicesData = data;
+            renderDevices(data);
+            updateStats(data);
+            updateBadges(data);
+        })
+        .catch(() => {
+            tbody.innerHTML = `<tr><td colspan="8" class="empty-state">
+                <i class="fas fa-robot"></i> Errore di connessione
+            </td></tr>`;
+        });
+}
 
-            // Platform Chart
-            fetch('/api/chart/platforms')
-                .then(res => res.json())
-                .then(data => {
-                    const ctx2 = document.getElementById('platformChart').getContext('2d');
-                    if (platformChart) platformChart.destroy();
+function refreshStats() {
+    fetch('/api/stats')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('totalDevices').textContent = data.total_devices || 0;
+            document.getElementById('onlineDevices').textContent = data.online_devices || 0;
+            document.getElementById('totalCaptures').textContent = data.total_captures || 0;
+            document.getElementById('totalCommands').textContent = data.total_commands || 0;
+            document.getElementById('deviceBadge').textContent = data.total_devices || 0;
+            document.getElementById('captureBadge').textContent = data.total_captures || 0;
+        })
+        .catch(() => {
+            document.getElementById('totalDevices').textContent = '0';
+            document.getElementById('onlineDevices').textContent = '0';
+            document.getElementById('totalCaptures').textContent = '0';
+            document.getElementById('totalCommands').textContent = '0';
+        });
+}
 
-                    platformChart = new Chart(ctx2, {
-                        type: 'doughnut',
-                        data: {
-                            labels: data.labels || ['Nessun dato'],
-                            datasets: [{
-                                data: data.data || [1],
-                                backgroundColor: data.colors || ['rgba(255,255,255,0.05)'],
-                                borderColor: 'transparent'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        color: 'rgba(255,255,255,0.3)',
-                                        font: { size: 9 },
-                                        padding: 8
-                                    }
-                                }
-                            },
-                            cutout: '70%'
-                        }
-                    });
-                })
-                .catch(() => console.log('Platform chart: nessun dato'));
-        }
+function refreshCharts() {
+    // Activity Chart - dati reali
+    fetch('/api/chart/activity')
+        .then(res => res.json())
+        .then(data => {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            if (activityChart) activityChart.destroy();
+
+            activityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels || [],
+                    datasets: [{
+                        label: 'Dispositivi attivi',
+                        data: data.data || [],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139,92,246,0.06)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointBackgroundColor: '#8b5cf6',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { labels: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } } }
+                    },
+                    scales: {
+                        x: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,0.02)' } },
+                        y: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.02)' } }
+                    }
+                }
+            });
+        })
+        .catch(() => console.log('Activity chart: nessun dato'));
+
+    // Platform Chart - dati reali
+    fetch('/api/chart/platforms')
+        .then(res => res.json())
+        .then(data => {
+            const ctx2 = document.getElementById('platformChart').getContext('2d');
+            if (platformChart) platformChart.destroy();
+
+            platformChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels || ['Nessun dato'],
+                    datasets: [{
+                        data: data.data || [1],
+                        backgroundColor: data.colors || ['rgba(255,255,255,0.05)'],
+                        borderColor: 'transparent'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.3)', font: { size: 9 }, padding: 8 } }
+                    },
+                    cutout: '70%'
+                }
+            });
+        })
+        .catch(() => console.log('Platform chart: nessun dato'));  
+    }
 
         // ============================================================
         //  AZIONI

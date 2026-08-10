@@ -534,6 +534,30 @@ def get_top_devices():
     conn.close()
     return jsonify([dict(d) for d in data])
 
+@app.route('/api/analytics/top_devices', methods=['GET'])
+@login_required
+def get_top_devices():
+    try:
+        conn = get_db()
+        data = conn.execute('''
+            SELECT 
+                device_id, 
+                hostname, 
+                platform, 
+                COUNT(commands.id) as commands_count,
+                (SELECT COUNT(*) FROM captures WHERE captures.device_id = devices.device_id) as captures_count
+            FROM devices
+            LEFT JOIN commands ON commands.device_id = devices.device_id
+            GROUP BY devices.device_id
+            ORDER BY commands_count DESC
+            LIMIT 10
+        ''').fetchall()
+        conn.close()
+        return jsonify([dict(d) for d in data])
+    except Exception as e:
+        print(f"[-] Top devices error: {e}")
+        return jsonify([]), 500
+
 # ============ LOGS ============
 @app.route('/api/logs', methods=['GET'])
 @login_required

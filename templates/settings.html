@@ -68,15 +68,25 @@
     <script>
         (function() {
             const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
-            const themes = {'dark':{bg:'#0b0b1a',text:'#e2e8f0',card:'rgba(18,18,40,0.45)',border:'rgba(255,255,255,0.04)'},'light':{bg:'#f1f5f9',text:'#0a0a1a',card:'rgba(255,255,255,0.85)',border:'rgba(0,0,0,0.08)'},'blue':{bg:'#0a1a3a',text:'#e2e8f0',card:'rgba(10,26,58,0.7)',border:'rgba(59,130,246,0.15)'},'green':{bg:'#0a1a0a',text:'#e2e8f0',card:'rgba(10,26,10,0.7)',border:'rgba(52,211,153,0.15)'},'purple':{bg:'#1a0a2a',text:'#e2e8f0',card:'rgba(26,10,42,0.7)',border:'rgba(139,92,246,0.15)'},'orange':{bg:'#2a1a0a',text:'#e2e8f0',card:'rgba(42,26,10,0.7)',border:'rgba(245,158,11,0.15)'},'cyber':{bg:'#0a0a0a',text:'#00ff88',card:'rgba(0,0,0,0.7)',border:'rgba(0,255,136,0.15)'},'matrix':{bg:'#0a0a0a',text:'#00ff00',card:'rgba(0,0,0,0.7)',border:'rgba(0,255,0,0.15)'}};
+            const themes = {
+                'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)', border: 'rgba(255,255,255,0.04)' },
+                'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)', border: 'rgba(0,0,0,0.08)' },
+                'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)', border: 'rgba(59,130,246,0.15)' },
+                'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)', border: 'rgba(52,211,153,0.15)' },
+                'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)', border: 'rgba(139,92,246,0.15)' },
+                'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)', border: 'rgba(245,158,11,0.15)' },
+                'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,136,0.15)' },
+                'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,0,0.15)' }
+            };
             const t = themes[savedTheme] || themes['dark'];
             document.documentElement.style.setProperty('--bg-primary', t.bg);
             document.documentElement.style.setProperty('--text-primary', t.text);
             document.documentElement.style.setProperty('--bg-card', t.card);
             document.documentElement.style.setProperty('--border-color', t.border);
-            document.body.style.background = t.bg;
-            document.body.style.color = t.text;
-            document.body.className = 'theme-' + savedTheme;
+            if (document.body) {
+                document.body.style.background = t.bg;
+                document.body.style.color = t.text;
+            }
             const savedLang = localStorage.getItem('botzxy_language') || 'it';
             document.documentElement.lang = savedLang;
         })();
@@ -153,48 +163,131 @@
     <script src="/static/js/config.js"></script>
     <script>
         let currentTheme = 'dark';
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('active'); }
-        function showToast(msg) { const toast=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3000); }
+        
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+        
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            if (toast) {
+                document.getElementById('toastMsg').textContent = msg;
+                toast.classList.add('show');
+                setTimeout(function() { toast.classList.remove('show'); }, 3000);
+            }
+        }
+        
         function selectTheme(theme) {
             currentTheme = theme;
-            document.querySelectorAll('.theme-option').forEach(el=>el.classList.remove('active'));
-            document.querySelector(`.theme-option[data-theme="${theme}"]`).classList.add('active');
-            const body=document.body;
-            const themes={'dark':{bg:'#0b0b1a',text:'#e2e8f0',card:'rgba(18,18,40,0.45)'},'light':{bg:'#f1f5f9',text:'#0a0a1a',card:'rgba(255,255,255,0.85)'},'blue':{bg:'#0a1a3a',text:'#e2e8f0',card:'rgba(10,26,58,0.7)'},'green':{bg:'#0a1a0a',text:'#e2e8f0',card:'rgba(10,26,10,0.7)'},'purple':{bg:'#1a0a2a',text:'#e2e8f0',card:'rgba(26,10,42,0.7)'},'orange':{bg:'#2a1a0a',text:'#e2e8f0',card:'rgba(42,26,10,0.7)'},'cyber':{bg:'#0a0a0a',text:'#00ff88',card:'rgba(0,0,0,0.7)'},'matrix':{bg:'#0a0a0a',text:'#00ff00',card:'rgba(0,0,0,0.7)'}};
-            const t=themes[theme]||themes['dark'];
-            body.style.background=t.bg; body.style.color=t.text;
-            document.querySelectorAll('.settings-card, .card').forEach(el=>{ el.style.background=t.card; });
+            document.querySelectorAll('.theme-option').forEach(function(el) { el.classList.remove('active'); });
+            const selected = document.querySelector('.theme-option[data-theme="' + theme + '"]');
+            if (selected) selected.classList.add('active');
+            
+            const themes = {
+                'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)' },
+                'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)' },
+                'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)' },
+                'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)' },
+                'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)' },
+                'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)' },
+                'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)' },
+                'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)' }
+            };
+            const t = themes[theme] || themes['dark'];
+            if (document.body) {
+                document.body.style.background = t.bg;
+                document.body.style.color = t.text;
+            }
+            document.querySelectorAll('.settings-card, .card').forEach(function(el) {
+                if (el) el.style.background = t.card;
+            });
         }
+        
         function loadSettings() {
-            fetch('/api/settings').then(r=>r.json()).then(data=>{
-                if(data.theme){ selectTheme(data.theme); }
-                document.getElementById('languageSelect').value=data.language||'it';
-            }).catch(()=>showToast('❌ <span data-i18n="error">Errore caricamento</span>'));
+            fetch('/api/settings')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.theme) selectTheme(data.theme);
+                    var langSelect = document.getElementById('languageSelect');
+                    if (langSelect) langSelect.value = data.language || 'it';
+                })
+                .catch(function() { showToast('❌ Errore caricamento'); });
         }
+        
         function saveSettings() {
-            const theme=currentTheme, language=document.getElementById('languageSelect').value;
-            const notifications=document.getElementById('notifNewDevice').checked?'on':'off';
-            fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme,language,notifications})})
-            .then(r=>r.json()).then(data=>{
-                if(data.status==='saved'){ showToast('✅ <span data-i18n="settings_saved">Impostazioni salvate!</span>'); localStorage.setItem('botzxy_theme',theme); BotZXYConfig.theme=theme; BotZXYConfig.applyTheme(); }
-                else { showToast('❌ '+(data.error||'<span data-i18n="settings_error">Errore salvataggio</span>')); }
-            }).catch(()=>showToast('❌ <span data-i18n="error">Errore di connessione</span>'));
+            var theme = currentTheme;
+            var language = document.getElementById('languageSelect') ? document.getElementById('languageSelect').value : 'it';
+            var notifications = document.getElementById('notifNewDevice') ? (document.getElementById('notifNewDevice').checked ? 'on' : 'off') : 'on';
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ theme: theme, language: language, notifications: notifications })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.status === 'saved') {
+                    showToast('✅ Impostazioni salvate!');
+                    localStorage.setItem('botzxy_theme', theme);
+                    if (typeof BotZXY !== 'undefined' && BotZXY.applyTheme) {
+                        BotZXY.theme = theme;
+                        BotZXY.applyTheme();
+                    }
+                } else {
+                    showToast('❌ ' + (data.error || 'Errore salvataggio'));
+                }
+            })
+            .catch(function() { showToast('❌ Errore di connessione'); });
         }
+        
         function changePassword() {
-            const old=prompt('Inserisci la password attuale:'); if(!old) return;
-            const newPass=prompt('Inserisci la nuova password:'); if(!newPass) return;
-            const confirmPass=prompt('Conferma la nuova password:'); if(newPass!==confirmPass){ showToast('❌ <span data-i18n="password_mismatch">Le password non coincidono</span>'); return; }
-            fetch('/api/change_password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old_password:old,new_password:newPass})})
-            .then(r=>r.json()).then(data=>{
-                if(data.status==='password_updated'){ showToast('✅ <span data-i18n="password_changed">Password cambiata con successo!</span>'); }
-                else { showToast('❌ '+(data.error||'<span data-i18n="password_error">Password attuale errata</span>')); }
-            }).catch(()=>showToast('❌ <span data-i18n="error">Errore</span>'));
+            var old = prompt('Inserisci la password attuale:');
+            if (!old) return;
+            var newPass = prompt('Inserisci la nuova password:');
+            if (!newPass) return;
+            var confirmPass = prompt('Conferma la nuova password:');
+            if (newPass !== confirmPass) { showToast('❌ Le password non coincidono'); return; }
+            fetch('/api/change_password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ old_password: old, new_password: newPass })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.status === 'password_updated') { showToast('✅ Password cambiata con successo!'); }
+                else { showToast('❌ ' + (data.error || 'Password attuale errata')); }
+            })
+            .catch(function() { showToast('❌ Errore'); });
         }
-        function logoutAll() { if(confirm('⚠️ <span data-i18n="logout_all_confirm">Disconnettere TUTTI i dispositivi connessi?</span>')) { fetch('/api/logout_all',{method:'POST'}).then(()=>showToast('✅ <span data-i18n="logout_all_done">Tutti i dispositivi disconnessi</span>')).catch(()=>showToast('❌ <span data-i18n="error">Errore</span>')); } }
-        function updateTime() { document.getElementById('footerTime').textContent=new Date().toLocaleTimeString('it-IT'); }
-        fetch('/api/stats').then(r=>r.json()).then(data=>{ document.getElementById('deviceBadge').textContent=data.total_devices||0; document.getElementById('captureBadge').textContent=data.total_captures||0; });
-        const savedTheme=localStorage.getItem('botzxy_theme')||'dark'; selectTheme(savedTheme);
-        loadSettings(); setInterval(updateTime,1000); updateTime();
+        
+        function logoutAll() {
+            if (confirm('⚠️ Disconnettere TUTTI i dispositivi connessi?')) {
+                fetch('/api/logout_all', { method: 'POST' })
+                    .then(function() { showToast('✅ Tutti i dispositivi disconnessi'); })
+                    .catch(function() { showToast('❌ Errore'); });
+            }
+        }
+        
+        function updateTime() {
+            var footer = document.getElementById('footerTime');
+            if (footer) footer.textContent = new Date().toLocaleTimeString('it-IT');
+        }
+        
+        fetch('/api/stats')
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                var badge = document.getElementById('deviceBadge');
+                if (badge) badge.textContent = data.total_devices || 0;
+                var badge2 = document.getElementById('captureBadge');
+                if (badge2) badge2.textContent = data.total_captures || 0;
+            });
+        
+        var savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
+        selectTheme(savedTheme);
+        loadSettings();
+        setInterval(updateTime, 1000);
+        updateTime();
     </script>
 </body>
 </html>

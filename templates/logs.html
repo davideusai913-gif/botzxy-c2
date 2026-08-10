@@ -111,33 +111,38 @@
     </main>
     <script src="/static/js/config.js"></script>
     <script>
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('active'); }
-        function refreshLogs() {
-            const tbody = document.getElementById('logsBody');
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:rgba(255,255,255,0.1);"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Caricamento...</span></td></tr>`;
-            fetch('/api/logs?limit=200').then(r=>r.json()).then(data=>{ renderLogs(data); document.getElementById('logCount').textContent = data.length + ' <span data-i18n="events">eventi</span>'; }).catch(()=>{
-                tbody.innerHTML = `<tr><td colspan="4" class="empty-state"><i class="fas fa-history"></i> <span data-i18n="error">Errore di connessione</span></td></tr>`;
-            });
+    (function() {
+        const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
+        const themes = {
+            'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)', border: 'rgba(255,255,255,0.04)' },
+            'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)', border: 'rgba(0,0,0,0.08)' },
+            'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)', border: 'rgba(59,130,246,0.15)' },
+            'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)', border: 'rgba(52,211,153,0.15)' },
+            'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)', border: 'rgba(139,92,246,0.15)' },
+            'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)', border: 'rgba(245,158,11,0.15)' },
+            'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,136,0.15)' },
+            'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,0,0.15)' }
+        };
+        const t = themes[savedTheme] || themes['dark'];
+        document.documentElement.style.setProperty('--bg-primary', t.bg);
+        document.documentElement.style.setProperty('--text-primary', t.text);
+        document.documentElement.style.setProperty('--bg-card', t.card);
+        document.documentElement.style.setProperty('--border-color', t.border);
+        if (document.body) {
+            document.body.style.background = t.bg;
+            document.body.style.color = t.text;
+            document.body.className = 'theme-' + savedTheme;
         }
-        function renderLogs(logs) {
-            const tbody = document.getElementById('logsBody');
-            if (!logs || logs.length===0) { tbody.innerHTML = `<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i> <span data-i18n="no_logs">Nessun log disponibile</span></td></tr>`; return; }
-            const actionColors = {'register':'success','command_sent':'info','screenshot_captured':'warning','webcam_captured':'warning','mic_recorded':'warning','keylog_captured':'danger','passwords_extracted':'danger','wifi_extracted':'info','clipboard_captured':'info','mouse_interaction':'info','file_list':'info','cookies_extracted':'danger','login_failed':'danger','login_success':'success'};
-            let html = '';
-            logs.forEach(log=>{
-                const time = new Date(log.timestamp).toLocaleString();
-                const action = log.action || 'unknown';
-                const colorClass = actionColors[action] || 'info';
-                const device = log.device_id ? log.device_id.substring(0,12) + '...' : 'Sistema';
-                html += `<tr><td class="log-time">${time}</td><td style="font-size:0.7rem;color:rgba(255,255,255,0.3);">${device}</td><td><span class="badge-log ${colorClass}">${action.replace(/_/g,' ')}</span></td><td class="log-details">${log.details || ''}</td></tr>`;
-            });
-            tbody.innerHTML = html;
-        }
-        function exportLogs() { fetch('/api/logs/export').then(r=>r.json()).then(data=>{ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`logs_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); }).catch(()=>alert('<span data-i18n="error">Errore esportazione</span>')); }
-        function clearLogs() { if(confirm('⚠️ <span data-i18n="clear_confirm">Cancellare TUTTI i log? Questa operazione è irreversibile.</span>')) { fetch('/api/logs/clear',{method:'POST'}).then(()=>{ refreshLogs(); alert('✅ <span data-i18n="logs_cleared">Log cancellati</span>'); }).catch(()=>alert('❌ <span data-i18n="error">Errore</span>')); } }
-        function updateTime() { document.getElementById('footerTime').textContent = new Date().toLocaleTimeString('it-IT'); }
-        fetch('/api/stats').then(r=>r.json()).then(data=>{ document.getElementById('deviceBadge').textContent=data.total_devices||0; document.getElementById('captureBadge').textContent=data.total_captures||0; });
-        refreshLogs(); setInterval(refreshLogs,30000); setInterval(updateTime,1000); updateTime();
-    </script>
+        // Applica anche agli elementi esistenti
+        document.querySelectorAll('.card, .settings-card, .stat-card, .device-card, .capture-item, .stat-box, .chart-card, .table-card, .sidebar').forEach(function(el) {
+            if (el) {
+                el.style.background = t.card;
+                el.style.borderColor = t.border;
+            }
+        });
+        const savedLang = localStorage.getItem('botzxy_language') || 'it';
+        document.documentElement.lang = savedLang;
+    })();
+    </script> 
 </body>
 </html>

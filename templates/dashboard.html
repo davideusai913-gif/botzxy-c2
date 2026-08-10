@@ -733,7 +733,8 @@
             document.documentElement.lang = savedLang;
         })();
     </script>
-</head>
+</head>ù
+<script src="/static/js/config.js"></script>
 <body>
 
     <!-- OVERLAY MOBILE -->
@@ -746,13 +747,13 @@
             Bot<span>ZXY</span>
         </div>
         <nav class="nav">
-            <a href="/dashboard" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="/devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
-            <a href="#"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
-            <a href="#"><i class="fas fa-chart-pie"></i> Analytics</a>
-            <a href="/logs"><i class="fas fa-history"></i> Logs</a>
-            <a href="/settings"><i class="fas fa-cog"></i> Settings</a>
-            <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="/dashboard" class="active" data-i18n="dashboard">Dashboard</a>
+            <a href="/devices" data-i18n="devices">Devices <span class="badge-nav" id="deviceBadge">0</span></a>
+            <a href="/captures" data-i18n="captures">Captures <span class="badge-nav" id="captureBadge">0</span></a>
+            <a href="/analytics" data-i18n="analytics">Analytics</a>
+            <a href="/logs" data-i18n="logs">Logs</a>
+            <a href="/settings" data-i18n="settings">Settings</a>
+            <a href="/logout" data-i18n="logout">Logout</a>
         </nav>
         <div class="footer-sidebar">
             <span class="status-dot"></span> Sistema attivo · <span id="footerTime"></span>

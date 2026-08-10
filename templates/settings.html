@@ -7,177 +7,68 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #0b0b1a;
-            color: #e2e8f0;
-            min-height: 100vh;
-            display: flex;
-        }
-        .sidebar {
-            width: 220px;
-            background: rgba(12,12,35,0.92);
-            backdrop-filter: blur(24px);
-            border-right: 1px solid rgba(255,255,255,0.04);
-            padding: 1.8rem 1.2rem;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            z-index: 100;
-        }
-        .sidebar .logo {
-            font-size: 1.6rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #8b5cf6, #22d3ee);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
-        .sidebar .logo i { -webkit-text-fill-color: initial; color: #8b5cf6; }
-        .sidebar .logo span { -webkit-text-fill-color: rgba(255,255,255,0.1); }
-        .sidebar .nav { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; padding-top: 1.2rem; }
-        .sidebar .nav a {
-            display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 1rem;
-            border-radius: 12px; color: rgba(255,255,255,0.3); text-decoration: none;
-            font-size: 0.85rem; font-weight: 500; transition: all 0.3s;
-        }
-        .sidebar .nav a i { font-size: 1.1rem; min-width: 24px; }
-        .sidebar .nav a:hover { color: #fff; background: rgba(139,92,246,0.08); }
-        .sidebar .nav a.active { color: #8b5cf6; background: rgba(139,92,246,0.1); }
-        .sidebar .footer-sidebar {
-            font-size: 0.6rem; color: rgba(255,255,255,0.06); text-align: center;
-            padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.04);
-            letter-spacing: 0.05em;
-        }
-        .sidebar .footer-sidebar .status-dot {
-            display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-            background: #34d399; box-shadow: 0 0 12px rgba(52,211,153,0.4);
-            animation: pulse 2s ease-in-out infinite; margin-right: 6px;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:var(--bg-primary,#0b0b1a); color:var(--text-primary,#e2e8f0); min-height:100vh; display:flex; }
+        .sidebar, .settings-card { background:var(--bg-card,rgba(18,18,40,0.45)); border-color:var(--border-color,rgba(255,255,255,0.04)); }
+        .sidebar { width:220px; background:rgba(12,12,35,0.92); backdrop-filter:blur(24px); border-right:1px solid rgba(255,255,255,0.04); padding:1.8rem 1.2rem; display:flex; flex-direction:column; min-height:100vh; position:fixed; top:0; left:0; height:100vh; z-index:100; }
+        .sidebar .logo { font-size:1.6rem; font-weight:800; background:linear-gradient(135deg,#8b5cf6,#22d3ee); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; padding-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.04); }
+        .sidebar .logo i { -webkit-text-fill-color:initial; color:#8b5cf6; }
+        .sidebar .logo span { -webkit-text-fill-color:rgba(255,255,255,0.1); }
+        .sidebar .nav { display:flex; flex-direction:column; gap:0.2rem; flex:1; padding-top:1.2rem; }
+        .sidebar .nav a { display:flex; align-items:center; gap:0.8rem; padding:0.7rem 1rem; border-radius:12px; color:rgba(255,255,255,0.3); text-decoration:none; font-size:0.85rem; font-weight:500; transition:all 0.3s; }
+        .sidebar .nav a i { font-size:1.1rem; min-width:24px; }
+        .sidebar .nav a:hover { color:#fff; background:rgba(139,92,246,0.08); }
+        .sidebar .nav a.active { color:#8b5cf6; background:rgba(139,92,246,0.1); }
+        .sidebar .nav a .badge-nav { margin-left:auto; background:rgba(139,92,246,0.15); color:#8b5cf6; font-size:0.6rem; padding:0.1rem 0.6rem; border-radius:40px; }
+        .sidebar .footer-sidebar { font-size:0.6rem; color:rgba(255,255,255,0.06); text-align:center; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.04); letter-spacing:0.05em; }
+        .sidebar .footer-sidebar .status-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#34d399; box-shadow:0 0 12px rgba(52,211,153,0.4); animation:pulse 2s ease-in-out infinite; margin-right:6px; }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-
-        .main { margin-left: 220px; padding: 1.8rem 2.2rem; width: 100%; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 0.8rem; }
-        .topbar h1 { font-size: 1.4rem; font-weight: 600; }
-        .topbar h1 span { color: rgba(255,255,255,0.2); font-weight: 400; }
-        .topbar .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-        .btn-ghost {
-            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
-            color: rgba(255,255,255,0.4); padding: 0.4rem 1rem; border-radius: 40px;
-            cursor: pointer; font-size: 0.75rem; transition: all 0.3s;
-            display: flex; align-items: center; gap: 0.4rem;
-        }
-        .btn-ghost:hover { background: rgba(139,92,246,0.08); color: #fff; border-color: rgba(139,92,246,0.2); }
-        .btn-primary {
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            border: none; color: #fff; padding: 0.5rem 1.5rem; border-radius: 12px;
-            cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif;
-            transition: all 0.3s;
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(120,80,255,0.2); }
-
-        .settings-card {
-            background: rgba(18,18,40,0.45); backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.04); border-radius: 24px;
-            padding: 1.8rem;
-            max-width: 700px;
-        }
-        .settings-group { margin-bottom: 1.8rem; }
-        .settings-group label { display: block; font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.4rem; }
-        .settings-group .desc { font-size: 0.7rem; color: rgba(255,255,255,0.2); margin-top: 0.2rem; }
-        .settings-group select, .settings-group input {
-            width: 100%; padding: 0.6rem 1rem; border-radius: 12px;
-            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
-            color: #fff; font-family: 'Inter', sans-serif; font-size: 0.9rem;
-            transition: all 0.3s;
-        }
-        .settings-group select:focus, .settings-group input:focus {
-            outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 4px rgba(139,92,246,0.1);
-        }
-        .settings-group select option { background: #1a1a3a; color: #fff; }
-
-        .theme-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem;
-            margin-top: 0.4rem;
-        }
-        .theme-option {
-            padding: 0.6rem; border-radius: 12px; text-align: center;
-            border: 2px solid rgba(255,255,255,0.04); cursor: pointer;
-            transition: all 0.3s; font-size: 0.7rem; font-weight: 500;
-        }
-        .theme-option:hover { border-color: rgba(139,92,246,0.3); }
-        .theme-option.active { border-color: #8b5cf6; background: rgba(139,92,246,0.08); }
-        .theme-option .preview {
-            width: 100%; height: 30px; border-radius: 8px; margin-bottom: 0.3rem;
-        }
-        .theme-option.dark .preview { background: #0b0b1a; border: 1px solid #333; }
-        .theme-option.light .preview { background: #f1f5f9; border: 1px solid #ddd; }
-        .theme-option.blue .preview { background: #1a2a6a; border: 1px solid #2a4a8a; }
-        .theme-option.green .preview { background: #0a2a1a; border: 1px solid #1a4a2a; }
-        .theme-option.purple .preview { background: #2a0a4a; border: 1px solid #4a1a6a; }
-        .theme-option.orange .preview { background: #4a2a0a; border: 1px solid #6a4a1a; }
-        .theme-option.cyber .preview { background: #0a0a0a; border: 1px solid #00ff88; box-shadow: 0 0 20px rgba(0,255,136,0.05); }
-        .theme-option.matrix .preview { background: #0a0a0a; border: 1px solid #00ff00; box-shadow: 0 0 20px rgba(0,255,0,0.05); }
-
-        .toggle-group {
-            display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
-        }
-        .toggle-item {
-            display: flex; align-items: center; gap: 0.5rem;
-            background: rgba(255,255,255,0.02); padding: 0.4rem 0.8rem; border-radius: 10px;
-            cursor: pointer;
-        }
-        .toggle-item input[type="checkbox"] {
-            width: 18px; height: 18px; accent-color: #8b5cf6;
-        }
-
-        .toast { position: fixed; bottom: 20px; right: 20px; background: #1a1a3a; border: 1px solid #00ff88; padding: 0.8rem 1.2rem; border-radius: 12px; color: #fff; font-size: 0.85rem; z-index: 999; display: none; align-items: center; gap: 0.6rem; }
-        .toast.show { display: flex; animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); width: 240px; }
-            .sidebar.open { transform: translateX(0); }
-            .main { margin-left: 0; padding: 1rem; }
-            .theme-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
-        .sidebar-overlay.active { display: block; }
-        .hamburger { display: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); color: #fff; padding: 0.4rem 0.8rem; border-radius: 10px; cursor: pointer; }
-        @media (max-width: 768px) { .hamburger { display: block; } }
-    </style>
-</head>
-<script src="/static/js/config.js"></script>
-<head>
-    <!-- ... -->
-    <style>
-        body { background: var(--bg-primary, #0b0b1a); color: var(--text-primary, #e2e8f0); }
-        .sidebar, .card, .settings-card, .stat-card, .device-card, .capture-item, .stat-box, .chart-card, .table-card {
-            background: var(--bg-card, rgba(18,18,40,0.45));
-            border-color: var(--border-color, rgba(255,255,255,0.04));
-        }
+        .main { margin-left:220px; padding:1.8rem 2.2rem; width:100%; }
+        .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:0.8rem; }
+        .topbar h1 { font-size:1.4rem; font-weight:600; }
+        .topbar h1 span { color:rgba(255,255,255,0.2); font-weight:400; }
+        .btn-ghost { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.4); padding:0.4rem 1rem; border-radius:40px; cursor:pointer; font-size:0.75rem; transition:all 0.3s; display:flex; align-items:center; gap:0.4rem; }
+        .btn-ghost:hover { background:rgba(139,92,246,0.08); color:#fff; border-color:rgba(139,92,246,0.2); }
+        .btn-primary { background:linear-gradient(135deg,#7c3aed,#3b82f6); border:none; color:#fff; padding:0.5rem 1.5rem; border-radius:12px; cursor:pointer; font-weight:600; font-family:'Inter',sans-serif; transition:all 0.3s; }
+        .btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 30px rgba(120,80,255,0.2); }
+        .settings-card { background:var(--bg-card,rgba(18,18,40,0.45)); backdrop-filter:blur(12px); border:1px solid var(--border-color,rgba(255,255,255,0.04)); border-radius:24px; padding:1.8rem; max-width:700px; }
+        .settings-group { margin-bottom:1.8rem; }
+        .settings-group label { display:block; font-size:0.75rem; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.4rem; }
+        .settings-group .desc { font-size:0.7rem; color:rgba(255,255,255,0.2); margin-top:0.2rem; }
+        .settings-group select, .settings-group input { width:100%; padding:0.6rem 1rem; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); color:#fff; font-family:'Inter',sans-serif; font-size:0.9rem; transition:all 0.3s; }
+        .settings-group select:focus, .settings-group input:focus { outline:none; border-color:#8b5cf6; box-shadow:0 0 0 4px rgba(139,92,246,0.1); }
+        .settings-group select option { background:#1a1a3a; color:#fff; }
+        .theme-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0.6rem; margin-top:0.4rem; }
+        .theme-option { padding:0.6rem; border-radius:12px; text-align:center; border:2px solid rgba(255,255,255,0.04); cursor:pointer; transition:all 0.3s; font-size:0.7rem; font-weight:500; }
+        .theme-option:hover { border-color:rgba(139,92,246,0.3); }
+        .theme-option.active { border-color:#8b5cf6; background:rgba(139,92,246,0.08); }
+        .theme-option .preview { width:100%; height:30px; border-radius:8px; margin-bottom:0.3rem; }
+        .theme-option.dark .preview { background:#0b0b1a; border:1px solid #333; }
+        .theme-option.light .preview { background:#f1f5f9; border:1px solid #ddd; }
+        .theme-option.blue .preview { background:#1a2a6a; border:1px solid #2a4a8a; }
+        .theme-option.green .preview { background:#0a2a1a; border:1px solid #1a4a2a; }
+        .theme-option.purple .preview { background:#2a0a4a; border:1px solid #4a1a6a; }
+        .theme-option.orange .preview { background:#4a2a0a; border:1px solid #6a4a1a; }
+        .theme-option.cyber .preview { background:#0a0a0a; border:1px solid #00ff88; box-shadow:0 0 20px rgba(0,255,136,0.05); }
+        .theme-option.matrix .preview { background:#0a0a0a; border:1px solid #00ff00; box-shadow:0 0 20px rgba(0,255,0,0.05); }
+        .toggle-group { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+        .toggle-item { display:flex; align-items:center; gap:0.5rem; background:rgba(255,255,255,0.02); padding:0.4rem 0.8rem; border-radius:10px; cursor:pointer; }
+        .toggle-item input[type="checkbox"] { width:18px; height:18px; accent-color:#8b5cf6; }
+        .toast { position:fixed; bottom:20px; right:20px; background:#1a1a3a; border:1px solid #00ff88; padding:0.8rem 1.2rem; border-radius:12px; color:#fff; font-size:0.85rem; z-index:999; display:none; align-items:center; gap:0.6rem; }
+        .toast.show { display:flex; animation:slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+        ::-webkit-scrollbar { width:4px; height:4px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:rgba(139,92,246,0.3); border-radius:10px; }
+        .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:90; }
+        .sidebar-overlay.active { display:block; }
+        .hamburger { display:none; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); color:#fff; padding:0.4rem 0.8rem; border-radius:10px; cursor:pointer; }
+        @media (max-width:768px) { .sidebar { transform:translateX(-100%); width:240px; } .sidebar.open { transform:translateX(0); } .main { margin-left:0; padding:1rem; } .theme-grid { grid-template-columns:repeat(2,1fr); } .hamburger { display:block; } }
     </style>
     <script>
-        // Carica tema e lingua DAL LOCALSTORAGE PRIMA del rendering
         (function() {
             const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
-            const themes = {
-                'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)', border: 'rgba(255,255,255,0.04)' },
-                'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)', border: 'rgba(0,0,0,0.08)' },
-                'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)', border: 'rgba(59,130,246,0.15)' },
-                'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)', border: 'rgba(52,211,153,0.15)' },
-                'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)', border: 'rgba(139,92,246,0.15)' },
-                'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)', border: 'rgba(245,158,11,0.15)' },
-                'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,136,0.15)' },
-                'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,0,0.15)' }
-            };
+            const themes = {'dark':{bg:'#0b0b1a',text:'#e2e8f0',card:'rgba(18,18,40,0.45)',border:'rgba(255,255,255,0.04)'},'light':{bg:'#f1f5f9',text:'#0a0a1a',card:'rgba(255,255,255,0.85)',border:'rgba(0,0,0,0.08)'},'blue':{bg:'#0a1a3a',text:'#e2e8f0',card:'rgba(10,26,58,0.7)',border:'rgba(59,130,246,0.15)'},'green':{bg:'#0a1a0a',text:'#e2e8f0',card:'rgba(10,26,10,0.7)',border:'rgba(52,211,153,0.15)'},'purple':{bg:'#1a0a2a',text:'#e2e8f0',card:'rgba(26,10,42,0.7)',border:'rgba(139,92,246,0.15)'},'orange':{bg:'#2a1a0a',text:'#e2e8f0',card:'rgba(42,26,10,0.7)',border:'rgba(245,158,11,0.15)'},'cyber':{bg:'#0a0a0a',text:'#00ff88',card:'rgba(0,0,0,0.7)',border:'rgba(0,255,136,0.15)'},'matrix':{bg:'#0a0a0a',text:'#00ff00',card:'rgba(0,0,0,0.7)',border:'rgba(0,255,0,0.15)'}};
             const t = themes[savedTheme] || themes['dark'];
             document.documentElement.style.setProperty('--bg-primary', t.bg);
             document.documentElement.style.setProperty('--text-primary', t.text);
@@ -186,8 +77,6 @@
             document.body.style.background = t.bg;
             document.body.style.color = t.text;
             document.body.className = 'theme-' + savedTheme;
-            
-            // Lingua
             const savedLang = localStorage.getItem('botzxy_language') || 'it';
             document.documentElement.lang = savedLang;
         })();
@@ -195,247 +84,117 @@
 </head>
 <body>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
     <aside class="sidebar" id="sidebar">
         <div class="logo"><i class="fas fa-robot"></i> Bot<span>ZXY</span></div>
         <nav class="nav">
-            <a href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="/devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
-            <a href="/captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
-            <a href="/analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
-            <a href="/logs"><i class="fas fa-history"></i> Logs</a>
-            <a href="#" class="active"><i class="fas fa-cog"></i> Settings</a>
-            <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="/dashboard" data-i18n="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="/devices" data-i18n="devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
+            <a href="/captures" data-i18n="captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
+            <a href="/analytics" data-i18n="analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
+            <a href="/logs" data-i18n="logs"><i class="fas fa-history"></i> Logs</a>
+            <a href="#" class="active" data-i18n="settings"><i class="fas fa-cog"></i> Settings</a>
+            <a href="/logout" data-i18n="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </nav>
-        <div class="footer-sidebar"><span class="status-dot"></span> Sistema attivo · <span id="footerTime"></span></div>
+        <div class="footer-sidebar"><span class="status-dot"></span> <span data-i18n="system_active">Sistema attivo</span> · <span id="footerTime"></span></div>
     </aside>
-
     <main class="main">
         <div class="topbar">
-            <div style="display:flex;align-items:center;gap:0.8rem;">
-                <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-                <h1>Impostazioni <span>| Personalizzazione avanzata</span></h1>
-            </div>
+            <div style="display:flex;align-items:center;gap:0.8rem;"><button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button><h1><span data-i18n="settings">Impostazioni</span> <span>| <span data-i18n="advanced_settings">Personalizzazione avanzata</span></span></h1></div>
+            <div class="actions"><button class="btn-ghost" onclick="loadSettings()"><i class="fas fa-sync"></i> <span data-i18n="reload">Ricarica</span></button></div>
         </div>
-
         <div class="settings-card">
-            <!-- TEMA -->
             <div class="settings-group">
-                <label><i class="fas fa-palette"></i> Tema</label>
+                <label><i class="fas fa-palette"></i> <span data-i18n="theme">Tema</span></label>
                 <div class="theme-grid" id="themeGrid">
-                    <div class="theme-option dark active" data-theme="dark" onclick="selectTheme('dark')">
-                        <div class="preview"></div> Scuro
-                    </div>
-                    <div class="theme-option light" data-theme="light" onclick="selectTheme('light')">
-                        <div class="preview"></div> Chiaro
-                    </div>
-                    <div class="theme-option blue" data-theme="blue" onclick="selectTheme('blue')">
-                        <div class="preview"></div> Blu
-                    </div>
-                    <div class="theme-option green" data-theme="green" onclick="selectTheme('green')">
-                        <div class="preview"></div> Verde
-                    </div>
-                    <div class="theme-option purple" data-theme="purple" onclick="selectTheme('purple')">
-                        <div class="preview"></div> Viola
-                    </div>
-                    <div class="theme-option orange" data-theme="orange" onclick="selectTheme('orange')">
-                        <div class="preview"></div> Arancione
-                    </div>
-                    <div class="theme-option cyber" data-theme="cyber" onclick="selectTheme('cyber')">
-                        <div class="preview"></div> Cyber
-                    </div>
-                    <div class="theme-option matrix" data-theme="matrix" onclick="selectTheme('matrix')">
-                        <div class="preview"></div> Matrix
-                    </div>
+                    <div class="theme-option dark active" data-theme="dark" onclick="selectTheme('dark')"><div class="preview"></div><span data-i18n="dark">Scuro</span></div>
+                    <div class="theme-option light" data-theme="light" onclick="selectTheme('light')"><div class="preview"></div><span data-i18n="light">Chiaro</span></div>
+                    <div class="theme-option blue" data-theme="blue" onclick="selectTheme('blue')"><div class="preview"></div><span data-i18n="blue">Blu</span></div>
+                    <div class="theme-option green" data-theme="green" onclick="selectTheme('green')"><div class="preview"></div><span data-i18n="green">Verde</span></div>
+                    <div class="theme-option purple" data-theme="purple" onclick="selectTheme('purple')"><div class="preview"></div><span data-i18n="purple">Viola</span></div>
+                    <div class="theme-option orange" data-theme="orange" onclick="selectTheme('orange')"><div class="preview"></div><span data-i18n="orange">Arancione</span></div>
+                    <div class="theme-option cyber" data-theme="cyber" onclick="selectTheme('cyber')"><div class="preview"></div><span data-i18n="cyber">Cyber</span></div>
+                    <div class="theme-option matrix" data-theme="matrix" onclick="selectTheme('matrix')"><div class="preview"></div><span data-i18n="matrix">Matrix</span></div>
                 </div>
-                <div class="desc">Scegli il tema per l'interfaccia</div>
+                <div class="desc" data-i18n="theme_desc">Scegli il tema per l'interfaccia</div>
             </div>
-
-            <!-- LINGUA -->
             <div class="settings-group">
-                <label><i class="fas fa-language"></i> Lingua</label>
+                <label><i class="fas fa-language"></i> <span data-i18n="language">Lingua</span></label>
                 <select id="languageSelect">
-                    <option value="it">🇮🇹 Italiano</option>
-                    <option value="en">🇬🇧 English</option>
-                    <option value="fr">🇫🇷 Français</option>
-                    <option value="es">🇪🇸 Español</option>
-                    <option value="de">🇩🇪 Deutsch</option>
+                    <option value="it">🇮🇹 <span data-i18n="lang_it">Italiano</span></option>
+                    <option value="en">🇬🇧 <span data-i18n="lang_en">English</span></option>
+                    <option value="fr">🇫🇷 <span data-i18n="lang_fr">Français</span></option>
+                    <option value="es">🇪🇸 <span data-i18n="lang_es">Español</span></option>
+                    <option value="de">🇩🇪 <span data-i18n="lang_de">Deutsch</span></option>
                 </select>
-                <div class="desc">Lingua dell'interfaccia</div>
+                <div class="desc" data-i18n="language_desc">Lingua dell'interfaccia</div>
             </div>
-
-            <!-- NOTIFICHE -->
             <div class="settings-group">
-                <label><i class="fas fa-bell"></i> Notifiche</label>
+                <label><i class="fas fa-bell"></i> <span data-i18n="notifications">Notifiche</span></label>
                 <div class="toggle-group">
-                    <label class="toggle-item">
-                        <input type="checkbox" id="notifNewDevice" checked /> Nuovi dispositivi
-                    </label>
-                    <label class="toggle-item">
-                        <input type="checkbox" id="notifCommand" checked /> Comandi eseguiti
-                    </label>
-                    <label class="toggle-item">
-                        <input type="checkbox" id="notifCapture" checked /> Nuove catture
-                    </label>
-                    <label class="toggle-item">
-                        <input type="checkbox" id="notifSystem" checked /> Eventi di sistema
-                    </label>
+                    <label class="toggle-item"><input type="checkbox" id="notifNewDevice" checked /> <span data-i18n="notif_new_device">Nuovi dispositivi</span></label>
+                    <label class="toggle-item"><input type="checkbox" id="notifCommand" checked /> <span data-i18n="notif_command">Comandi eseguiti</span></label>
+                    <label class="toggle-item"><input type="checkbox" id="notifCapture" checked /> <span data-i18n="notif_capture">Nuove catture</span></label>
+                    <label class="toggle-item"><input type="checkbox" id="notifSystem" checked /> <span data-i18n="notif_system">Eventi di sistema</span></label>
                 </div>
-                <div class="desc">Seleziona le notifiche da ricevere</div>
+                <div class="desc" data-i18n="notifications_desc">Seleziona le notifiche da ricevere</div>
             </div>
-
-            <!-- SICUREZZA -->
             <div class="settings-group">
-                <label><i class="fas fa-shield-alt"></i> Sicurezza</label>
+                <label><i class="fas fa-shield-alt"></i> <span data-i18n="security">Sicurezza</span></label>
                 <div style="display:flex;flex-direction:column;gap:0.5rem;">
-                    <button class="btn-ghost" style="justify-content:center;width:100%;" onclick="changePassword()">
-                        <i class="fas fa-key"></i> Cambia password
-                    </button>
-                    <button class="btn-ghost" style="justify-content:center;width:100%;border-color:rgba(239,68,68,0.2);color:#f87171;" onclick="logoutAll()">
-                        <i class="fas fa-sign-out-alt"></i> Disconnetti tutti i dispositivi
-                    </button>
+                    <button class="btn-ghost" style="justify-content:center;width:100%;" onclick="changePassword()"><i class="fas fa-key"></i> <span data-i18n="change_password">Cambia password</span></button>
+                    <button class="btn-ghost" style="justify-content:center;width:100%;border-color:rgba(239,68,68,0.2);color:#f87171;" onclick="logoutAll()"><i class="fas fa-sign-out-alt"></i> <span data-i18n="logout_all">Disconnetti tutti i dispositivi</span></button>
                 </div>
-                <div class="desc">Gestisci la sicurezza del tuo account</div>
+                <div class="desc" data-i18n="security_desc">Gestisci la sicurezza del tuo account</div>
             </div>
-
-            <button class="btn-primary" onclick="saveSettings()" style="width:100%;">
-                <i class="fas fa-save"></i> Salva tutte le impostazioni
-            </button>
+            <button class="btn-primary" onclick="saveSettings()" style="width:100%;"><i class="fas fa-save"></i> <span data-i18n="save_settings">Salva tutte le impostazioni</span></button>
         </div>
     </main>
-
-    <div class="toast" id="toast"><i class="fas fa-check-circle" style="color:#00ff88;"></i> <span id="toastMsg">Salvato!</span></div>
-
+    <div class="toast" id="toast"><i class="fas fa-check-circle" style="color:#00ff88;"></i> <span id="toastMsg"><span data-i18n="settings_saved">Salvato!</span></span></div>
+    <script src="/static/js/config.js"></script>
     <script>
         let currentTheme = 'dark';
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebarOverlay').classList.toggle('active');
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMsg').textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('active'); }
+        function showToast(msg) { const toast=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3000); }
         function selectTheme(theme) {
             currentTheme = theme;
-            document.querySelectorAll('.theme-option').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.theme-option').forEach(el=>el.classList.remove('active'));
             document.querySelector(`.theme-option[data-theme="${theme}"]`).classList.add('active');
-            
-            const body = document.body;
-            const themes = {
-                'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)' },
-                'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)' },
-                'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)' },
-                'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)' },
-                'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)' },
-                'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)' },
-                'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)' },
-                'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)' }
-            };
-            const t = themes[theme] || themes['dark'];
-            body.style.background = t.bg;
-            body.style.color = t.text;
-            document.querySelectorAll('.settings-card, .card').forEach(el => {
-                el.style.background = t.card;
-            });
+            const body=document.body;
+            const themes={'dark':{bg:'#0b0b1a',text:'#e2e8f0',card:'rgba(18,18,40,0.45)'},'light':{bg:'#f1f5f9',text:'#0a0a1a',card:'rgba(255,255,255,0.85)'},'blue':{bg:'#0a1a3a',text:'#e2e8f0',card:'rgba(10,26,58,0.7)'},'green':{bg:'#0a1a0a',text:'#e2e8f0',card:'rgba(10,26,10,0.7)'},'purple':{bg:'#1a0a2a',text:'#e2e8f0',card:'rgba(26,10,42,0.7)'},'orange':{bg:'#2a1a0a',text:'#e2e8f0',card:'rgba(42,26,10,0.7)'},'cyber':{bg:'#0a0a0a',text:'#00ff88',card:'rgba(0,0,0,0.7)'},'matrix':{bg:'#0a0a0a',text:'#00ff00',card:'rgba(0,0,0,0.7)'}};
+            const t=themes[theme]||themes['dark'];
+            body.style.background=t.bg; body.style.color=t.text;
+            document.querySelectorAll('.settings-card, .card').forEach(el=>{ el.style.background=t.card; });
         }
-
         function loadSettings() {
-            fetch('/api/settings')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.theme) { selectTheme(data.theme); }
-                    document.getElementById('languageSelect').value = data.language || 'it';
-                });
+            fetch('/api/settings').then(r=>r.json()).then(data=>{
+                if(data.theme){ selectTheme(data.theme); }
+                document.getElementById('languageSelect').value=data.language||'it';
+            }).catch(()=>showToast('❌ <span data-i18n="error">Errore caricamento</span>'));
         }
-        
         function saveSettings() {
-        const theme = currentTheme;
-        const language = document.getElementById('languageSelect').value;
-        const notifications = document.getElementById('notifNewDevice').checked ? 'on' : 'off';
-
-        fetch('/api/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ theme, language, notifications })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 'saved') {
-                showToast('✅ Impostazioni salvate!');
-                localStorage.setItem('botzxy_theme', theme);
-                localStorage.setItem('botzxy_language', language);
-            
-                // Ricarica la pagina per applicare i cambiamenti
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                showToast('❌ ' + (data.error || 'Errore salvataggio'));
-            }
-        })
-        .catch(() => showToast('❌ Errore di connessione'));
-    }
-
+            const theme=currentTheme, language=document.getElementById('languageSelect').value;
+            const notifications=document.getElementById('notifNewDevice').checked?'on':'off';
+            fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme,language,notifications})})
+            .then(r=>r.json()).then(data=>{
+                if(data.status==='saved'){ showToast('✅ <span data-i18n="settings_saved">Impostazioni salvate!</span>'); localStorage.setItem('botzxy_theme',theme); BotZXYConfig.theme=theme; BotZXYConfig.applyTheme(); }
+                else { showToast('❌ '+(data.error||'<span data-i18n="settings_error">Errore salvataggio</span>')); }
+            }).catch(()=>showToast('❌ <span data-i18n="error">Errore di connessione</span>'));
+        }
         function changePassword() {
-            const old = prompt('Inserisci la password attuale:');
-            if (!old) return;
-            const newPass = prompt('Inserisci la nuova password:');
-            if (!newPass) return;
-            const confirmPass = prompt('Conferma la nuova password:');
-            if (newPass !== confirmPass) {
-                showToast('❌ Le password non coincidono');
-                return;
-            }
-            // Chiamata API per cambiare password
-            fetch('/api/change_password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ old_password: old, new_password: newPass })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'password_updated') {
-                    showToast('✅ Password cambiata con successo!');
-                } else {
-                    showToast('❌ ' + (data.error || 'Errore'));
-                }
-            })
-            .catch(() => showToast('❌ Errore'));
+            const old=prompt('Inserisci la password attuale:'); if(!old) return;
+            const newPass=prompt('Inserisci la nuova password:'); if(!newPass) return;
+            const confirmPass=prompt('Conferma la nuova password:'); if(newPass!==confirmPass){ showToast('❌ <span data-i18n="password_mismatch">Le password non coincidono</span>'); return; }
+            fetch('/api/change_password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old_password:old,new_password:newPass})})
+            .then(r=>r.json()).then(data=>{
+                if(data.status==='password_updated'){ showToast('✅ <span data-i18n="password_changed">Password cambiata con successo!</span>'); }
+                else { showToast('❌ '+(data.error||'<span data-i18n="password_error">Password attuale errata</span>')); }
+            }).catch(()=>showToast('❌ <span data-i18n="error">Errore</span>'));
         }
-
-        function logoutAll() {
-            if (confirm('⚠️ Disconnettere TUTTI i dispositivi connessi?')) {
-                fetch('/api/logout_all', { method: 'POST' })
-                    .then(() => showToast('✅ Tutti i dispositivi disconnessi'))
-                    .catch(() => showToast('❌ Errore'));
-            }
-        }
-
-        // Carica tema salvato
-        const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
-        selectTheme(savedTheme);
-
-        // Stats per badges
-        fetch('/api/stats')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('deviceBadge').textContent = data.total_devices || 0;
-                document.getElementById('captureBadge').textContent = data.total_captures || 0;
-            });
-
-        function updateTime() {
-            document.getElementById('footerTime').textContent = new Date().toLocaleTimeString('it-IT');
-        }
-
-        loadSettings();
-        setInterval(updateTime, 1000);
-        updateTime();
+        function logoutAll() { if(confirm('⚠️ <span data-i18n="logout_all_confirm">Disconnettere TUTTI i dispositivi connessi?</span>')) { fetch('/api/logout_all',{method:'POST'}).then(()=>showToast('✅ <span data-i18n="logout_all_done">Tutti i dispositivi disconnessi</span>')).catch(()=>showToast('❌ <span data-i18n="error">Errore</span>')); } }
+        function updateTime() { document.getElementById('footerTime').textContent=new Date().toLocaleTimeString('it-IT'); }
+        fetch('/api/stats').then(r=>r.json()).then(data=>{ document.getElementById('deviceBadge').textContent=data.total_devices||0; document.getElementById('captureBadge').textContent=data.total_captures||0; });
+        const savedTheme=localStorage.getItem('botzxy_theme')||'dark'; selectTheme(savedTheme);
+        loadSettings(); setInterval(updateTime,1000); updateTime();
     </script>
 </body>
 </html>

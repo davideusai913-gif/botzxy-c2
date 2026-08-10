@@ -3,16 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>BotZXY</title>
+    <title>BotZXY · Neon C2</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
@@ -20,314 +15,64 @@
             align-items: center;
             justify-content: center;
             background: #0b0b1a;
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(120, 80, 255, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 50%, rgba(0, 200, 255, 0.08) 0%, transparent 50%);
+            background-image: radial-gradient(circle at 20% 50%, rgba(120,80,255,0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 50%, rgba(0,200,255,0.08) 0%, transparent 50%);
             padding: 1.5rem;
         }
-
         .login-card {
-            background: rgba(18, 18, 40, 0.75);
+            background: rgba(18,18,40,0.75);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(140, 100, 255, 0.25);
+            border: 1px solid rgba(140,100,255,0.25);
             border-radius: 40px;
             padding: 3rem 2.8rem;
             width: 100%;
             max-width: 440px;
-            box-shadow: 0 0 60px rgba(100, 70, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-            animation: floatIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            box-shadow: 0 0 60px rgba(100,70,255,0.15), inset 0 1px 0 rgba(255,255,255,0.04);
+            animation: floatIn 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
         }
-
-        @keyframes floatIn {
-            0% { opacity: 0; transform: translateY(30px) scale(0.96); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .brand-icon {
-            font-size: 2.6rem;
-            color: #a78bfa;
-            filter: drop-shadow(0 0 12px rgba(120, 80, 255, 0.5));
-            animation: pulseGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes pulseGlow {
-            0%, 100% { filter: drop-shadow(0 0 12px rgba(120, 80, 255, 0.5)); }
-            50% { filter: drop-shadow(0 0 28px rgba(0, 200, 255, 0.7)); }
-        }
-
-        .brand-text {
-            font-size: 2.1rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 50%, #22d3ee 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .brand-text span {
-            font-weight: 300;
-            -webkit-text-fill-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .subtitle {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.35);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.3em;
-            margin-bottom: 2.2rem;
-            font-weight: 600;
-        }
-
-        /* ---- ERROR MESSAGE ---- */
-        .error-container {
-            margin-bottom: 1.2rem;
-        }
-
-        .error-message {
-            background: rgba(239, 68, 68, 0.12);
-            border: 1px solid rgba(239, 68, 68, 0.25);
-            color: #f87171;
-            padding: 0.8rem 1rem;
-            border-radius: 14px;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.7rem;
-            animation: shake 0.5s ease-in-out;
-        }
-
-        .error-message i {
-            font-size: 1.1rem;
-            color: #f87171;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-8px); }
-            40% { transform: translateX(8px); }
-            60% { transform: translateX(-5px); }
-            80% { transform: translateX(5px); }
-        }
-
-        /* ---- FORM ---- */
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .input-label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.5);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 0.4rem;
-        }
-
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .input-wrapper:focus-within {
-            border-color: #a78bfa;
-            box-shadow: 0 0 0 4px rgba(120, 80, 255, 0.15), 0 0 30px rgba(120, 80, 255, 0.05);
-        }
-
-        .input-wrapper .icon {
-            padding: 0 0 0 1rem;
-            color: rgba(255, 255, 255, 0.2);
-            font-size: 1rem;
-            transition: color 0.3s ease;
-        }
-
-        .input-wrapper:focus-within .icon {
-            color: #a78bfa;
-        }
-
-        .input-wrapper input {
-            width: 100%;
-            padding: 0.9rem 1rem 0.9rem 0.75rem;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #fff;
-            font-size: 0.95rem;
-            font-weight: 500;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .input-wrapper input::placeholder {
-            color: rgba(255, 255, 255, 0.2);
-            font-weight: 400;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 0.9rem;
-            margin-top: 0.5rem;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            border: none;
-            border-radius: 16px;
-            color: #fff;
-            font-size: 1rem;
-            font-weight: 700;
-            font-family: 'Inter', sans-serif;
-            letter-spacing: 0.02em;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 0 30px rgba(120, 80, 255, 0.15);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-login::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, #6d28d9, #2563eb);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-
-        .btn-login:hover {
-            transform: scale(1.02) translateY(-2px);
-            box-shadow: 0 0 50px rgba(120, 80, 255, 0.3), 0 0 80px rgba(0, 200, 255, 0.1);
-        }
-
-        .btn-login:hover::before {
-            opacity: 1;
-        }
-
-        .btn-login span {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-        }
-
-        .btn-login i {
-            font-size: 1.1rem;
-            transition: transform 0.3s ease;
-        }
-
-        .btn-login:hover i {
-            transform: translateX(4px) scale(1.1);
-        }
-
-        .btn-login:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .footer {
-            margin-top: 2.2rem;
-            text-align: center;
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.15);
-            letter-spacing: 0.05em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .footer .neon-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #22d3ee;
-            box-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
-            animation: dotPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes dotPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.8); }
-        }
-
-        @media (max-width: 480px) {
-            .login-card {
-                padding: 2rem 1.5rem;
-                border-radius: 28px;
-            }
-            .brand-text {
-                font-size: 1.6rem;
-            }
-            .brand-icon {
-                font-size: 2rem;
-            }
-            .error-message {
-                font-size: 0.75rem;
-                padding: 0.6rem 0.8rem;
-            }
-        }
+        @keyframes floatIn { 0% { opacity:0; transform:translateY(30px) scale(0.96); } 100% { opacity:1; transform:translateY(0) scale(1); } }
+        .brand { display:flex; align-items:center; justify-content:center; gap:0.75rem; margin-bottom:0.5rem; }
+        .brand-icon { font-size:2.6rem; color:#a78bfa; filter:drop-shadow(0 0 12px rgba(120,80,255,0.5)); animation:pulseGlow 3s ease-in-out infinite; }
+        @keyframes pulseGlow { 0%,100% { filter:drop-shadow(0 0 12px rgba(120,80,255,0.5)); } 50% { filter:drop-shadow(0 0 28px rgba(0,200,255,0.7)); } }
+        .brand-text { font-size:2.1rem; font-weight:800; letter-spacing:-0.02em; background:linear-gradient(135deg,#a78bfa 0%,#60a5fa 50%,#22d3ee 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .brand-text span { font-weight:300; -webkit-text-fill-color:rgba(255,255,255,0.3); }
+        .subtitle { text-align:center; color:rgba(255,255,255,0.35); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.3em; margin-bottom:2.2rem; font-weight:600; }
+        .error-container { margin-bottom:1.2rem; }
+        .error-message { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.25); color:#f87171; padding:0.8rem 1rem; border-radius:14px; font-size:0.85rem; display:flex; align-items:center; gap:0.7rem; animation:shake 0.5s ease-in-out; }
+        .error-message i { font-size:1.1rem; color:#f87171; }
+        @keyframes shake { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-8px); } 40% { transform:translateX(8px); } 60% { transform:translateX(-5px); } 80% { transform:translateX(5px); } }
+        .form-group { margin-bottom:1.5rem; }
+        .input-label { display:block; font-size:0.75rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.4rem; }
+        .input-wrapper { position:relative; display:flex; align-items:center; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:16px; transition:border-color 0.3s ease, box-shadow 0.3s ease; }
+        .input-wrapper:focus-within { border-color:#a78bfa; box-shadow:0 0 0 4px rgba(120,80,255,0.15), 0 0 30px rgba(120,80,255,0.05); }
+        .input-wrapper .icon { padding:0 0 0 1rem; color:rgba(255,255,255,0.2); font-size:1rem; transition:color 0.3s ease; }
+        .input-wrapper:focus-within .icon { color:#a78bfa; }
+        .input-wrapper input { width:100%; padding:0.9rem 1rem 0.9rem 0.75rem; background:transparent; border:none; outline:none; color:#fff; font-size:0.95rem; font-weight:500; font-family:'Inter',sans-serif; }
+        .input-wrapper input::placeholder { color:rgba(255,255,255,0.2); font-weight:400; }
+        .btn-login { width:100%; padding:0.9rem; margin-top:0.5rem; background:linear-gradient(135deg,#7c3aed,#3b82f6); border:none; border-radius:16px; color:#fff; font-size:1rem; font-weight:700; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 0 30px rgba(120,80,255,0.15); position:relative; overflow:hidden; }
+        .btn-login::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,#6d28d9,#2563eb); opacity:0; transition:opacity 0.4s ease; }
+        .btn-login:hover { transform:scale(1.02) translateY(-2px); box-shadow:0 0 50px rgba(120,80,255,0.3), 0 0 80px rgba(0,200,255,0.1); }
+        .btn-login:hover::before { opacity:1; }
+        .btn-login span { position:relative; z-index:1; display:flex; align-items:center; justify-content:center; gap:0.6rem; }
+        .btn-login i { font-size:1.1rem; transition:transform 0.3s ease; }
+        .btn-login:hover i { transform:translateX(4px) scale(1.1); }
+        .btn-login:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; }
+        .btn-login:disabled::before { opacity:0 !important; }
+        .footer { margin-top:2.2rem; text-align:center; font-size:0.7rem; color:rgba(255,255,255,0.15); letter-spacing:0.05em; display:flex; align-items:center; justify-content:center; gap:0.5rem; flex-wrap:wrap; }
+        .footer .neon-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#22d3ee; box-shadow:0 0 12px rgba(34,211,238,0.6); animation:dotPulse 2s ease-in-out infinite; }
+        @keyframes dotPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.8); } }
+        @media (max-width:480px) { .login-card { padding:2rem 1.5rem; border-radius:28px; } .brand-text { font-size:1.6rem; } .brand-icon { font-size:2rem; } .error-message { font-size:0.75rem; padding:0.6rem 0.8rem; } }
     </style>
 </head>
-<head>
-    <!-- ... -->
-    <style>
-        /* Tema applicato immediatamente */
-        body { background: #0b0b1a; color: #e2e8f0; }
-        .sidebar, .card, .settings-card { background: rgba(18,18,40,0.45); border-color: rgba(255,255,255,0.04); }
-    </style>
-    <script>
-        // Carica tema e lingua DAL LOCALSTORAGE PRIMA del rendering
-        (function() {
-            const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
-            const themes = {
-                'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)', border: 'rgba(255,255,255,0.04)' },
-                'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)', border: 'rgba(0,0,0,0.08)' },
-                'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)', border: 'rgba(59,130,246,0.15)' },
-                'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)', border: 'rgba(52,211,153,0.15)' },
-                'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)', border: 'rgba(139,92,246,0.15)' },
-                'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)', border: 'rgba(245,158,11,0.15)' },
-                'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,136,0.15)' },
-                'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,0,0.15)' }
-            };
-            const t = themes[savedTheme] || themes['dark'];
-            document.documentElement.style.setProperty('--bg-primary', t.bg);
-            document.documentElement.style.setProperty('--text-primary', t.text);
-            document.documentElement.style.setProperty('--bg-card', t.card);
-            document.documentElement.style.setProperty('--border-color', t.border);
-            document.body.style.background = t.bg;
-            document.body.style.color = t.text;
-            document.body.className = 'theme-' + savedTheme;
-        })();
-    </script>
-</head>
-<script src="/static/js/config.js"></script>
 <body>
     <div class="login-card">
         <div class="brand">
             <i class="fas fa-robot brand-icon"></i>
             <span class="brand-text">Bot<span>ZXY</span></span>
         </div>
-        <br>
-        <br>
+        <div class="subtitle">★ C2 · NEON v2.0</div>
 
-        <!-- MESSAGGIO DI ERRORE -->
         {% if error %}
         <div class="error-container">
             <div class="error-message">
@@ -339,25 +84,23 @@
 
         <form method="POST" action="/login" id="loginForm">
             <div class="form-group">
-                <label class="input-label"><i class="fas fa-user-astronaut" style="margin-right: 6px;"></i> Username</label>
+                <label class="input-label"><i class="fas fa-user-astronaut" style="margin-right:6px;"></i> <span data-i18n="username">Username</span></label>
                 <div class="input-wrapper">
                     <span class="icon"><i class="fas fa-user"></i></span>
                     <input type="text" name="username" placeholder="Inserisci username" required autofocus />
                 </div>
             </div>
-
             <div class="form-group">
-                <label class="input-label"><i class="fas fa-key" style="margin-right: 6px;"></i> Password</label>
+                <label class="input-label"><i class="fas fa-key" style="margin-right:6px;"></i> <span data-i18n="password">Password</span></label>
                 <div class="input-wrapper">
                     <span class="icon"><i class="fas fa-lock"></i></span>
                     <input type="password" name="password" placeholder="••••••••" required />
                 </div>
             </div>
-
             <button type="submit" class="btn-login" id="loginBtn">
                 <span>
                     <i class="fas fa-arrow-right-to-bracket"></i>
-                    ACCEDI AL DASHBOARD
+                    <span data-i18n="login_btn">ACCEDI AL DASHBOARD</span>
                 </span>
             </button>
         </form>
@@ -365,19 +108,20 @@
         <div class="footer">
             <span class="neon-dot"></span>
             <span>BotZXY · C2 System</span>
-            <i class="fas fa-circle" style="font-size: 3px; opacity: 0.3;"></i>
-            <span style="color: rgba(255,255,255,0.1);">v2.0</span>
+            <i class="fas fa-circle" style="font-size:3px; opacity:0.3;"></i>
+            <span style="color:rgba(255,255,255,0.1);">v2.0</span>
         </div>
     </div>
 
+    <script src="/static/js/config.js"></script>
     <script>
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             const btn = document.getElementById('loginBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Accesso in corso...</span>';
+            btn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Accesso in corso...</span></span>';
             setTimeout(function() {
                 btn.disabled = false;
-                btn.innerHTML = '<span><i class="fas fa-arrow-right-to-bracket"></i> ACCEDI AL DASHBOARD</span>';
+                btn.innerHTML = '<span><i class="fas fa-arrow-right-to-bracket"></i> <span data-i18n="login_btn">ACCEDI AL DASHBOARD</span></span>';
             }, 5000);
         });
     </script>

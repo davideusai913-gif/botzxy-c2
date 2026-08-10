@@ -316,29 +316,37 @@
         }
 
         function saveSettings() {
-            const theme = currentTheme;
-            const language = document.getElementById('languageSelect').value;
-            
-            // Raccogli notifiche
-            const notifications = {
-                new_device: document.getElementById('notifNewDevice').checked ? 'on' : 'off',
-                command: document.getElementById('notifCommand').checked ? 'on' : 'off',
-                capture: document.getElementById('notifCapture').checked ? 'on' : 'off',
-                system: document.getElementById('notifSystem').checked ? 'on' : 'off'
-            };
+        const theme = currentTheme;
+        const language = document.getElementById('languageSelect').value;
+    
+        // Le notifiche vengono salvate come un singolo campo 'on' o 'off'
+        const notificheAttive = document.getElementById('notifNewDevice').checked || 
+                                document.getElementById('notifCommand').checked || 
+                                document.getElementById('notifCapture').checked || 
+                                document.getElementById('notifSystem').checked;
+    
+        const notifications = notificheAttive ? 'on' : 'off';
 
-            fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ theme, language, notifications })
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                theme: theme, 
+                language: language, 
+                notifications: notifications 
             })
-            .then(res => res.json())
-            .then(() => {
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'saved') {
                 showToast('✅ Impostazioni salvate!');
                 localStorage.setItem('botzxy_theme', theme);
-            })
-            .catch(() => showToast('❌ Errore salvataggio'));
-        }
+            } else {
+                showToast('❌ ' + (data.error || 'Errore salvataggio'));
+            }
+        })
+        .catch(() => showToast('❌ Errore di connessione'));
+    }
 
         function changePassword() {
             const old = prompt('Inserisci la password attuale:');

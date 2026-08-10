@@ -154,6 +154,26 @@
         @media (max-width: 768px) { .hamburger { display: block; } }
     </style>
 </head>
+<!-- Carica configurazione -->
+<script src="/static/js/config.js"></script>
+<script>
+    // Applica tema e lingua all'avvio
+    document.addEventListener('DOMContentLoaded', function() {
+        // Carica le impostazioni
+        fetch('/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                BotZXYConfig.theme = data.theme || 'dark';
+                BotZXYConfig.language = data.language || 'it';
+                BotZXYConfig.applyTheme();
+                BotZXYConfig.applyLanguage();
+            })
+            .catch(() => {
+                BotZXYConfig.applyTheme();
+                BotZXYConfig.applyLanguage();
+            });
+    });
+</script>
 <body>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
@@ -314,33 +334,28 @@
                     document.getElementById('languageSelect').value = data.language || 'it';
                 });
         }
-
+        
         function saveSettings() {
         const theme = currentTheme;
         const language = document.getElementById('languageSelect').value;
-    
-        // Le notifiche vengono salvate come un singolo campo 'on' o 'off'
-        const notificheAttive = document.getElementById('notifNewDevice').checked || 
-                                document.getElementById('notifCommand').checked || 
-                                document.getElementById('notifCapture').checked || 
-                                document.getElementById('notifSystem').checked;
-    
-        const notifications = notificheAttive ? 'on' : 'off';
+        const notifications = document.getElementById('notifNewDevice').checked ? 'on' : 'off';
 
         fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                theme: theme, 
-                language: language, 
-                notifications: notifications 
-            })
+            body: JSON.stringify({ theme, language, notifications })
         })
         .then(res => res.json())
         .then(data => {
             if (data.status === 'saved') {
                 showToast('✅ Impostazioni salvate!');
                 localStorage.setItem('botzxy_theme', theme);
+                localStorage.setItem('botzxy_language', language);
+            
+                // Ricarica la pagina per applicare i cambiamenti
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             } else {
                 showToast('❌ ' + (data.error || 'Errore salvataggio'));
             }

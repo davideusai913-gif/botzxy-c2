@@ -696,6 +696,26 @@
         }
     </style>
 </head>
+<!-- Carica configurazione -->
+<script src="/static/js/config.js"></script>
+<script>
+    // Applica tema e lingua all'avvio
+    document.addEventListener('DOMContentLoaded', function() {
+        // Carica le impostazioni
+        fetch('/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                BotZXYConfig.theme = data.theme || 'dark';
+                BotZXYConfig.language = data.language || 'it';
+                BotZXYConfig.applyTheme();
+                BotZXYConfig.applyLanguage();
+            })
+            .catch(() => {
+                BotZXYConfig.applyTheme();
+                BotZXYConfig.applyLanguage();
+            });
+    });
+</script>
 <body>
 
     <!-- OVERLAY MOBILE -->

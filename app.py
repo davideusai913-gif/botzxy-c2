@@ -626,6 +626,60 @@ def save_settings():
     log_action('system', 'settings_updated', f'Impostazioni aggiornate: theme={theme}, language={language}')
     return jsonify({'status': 'saved'})
 
+@app.route('/api/translations', methods=['GET'])
+@login_required
+def get_translations():
+    lang = request.args.get('lang', 'it')
+    translations = {
+        'it': {
+            'dashboard': 'Dashboard',
+            'devices': 'Dispositivi',
+            'captures': 'Catture',
+            'analytics': 'Analytics',
+            'logs': 'Log',
+            'settings': 'Impostazioni',
+            'logout': 'Esci',
+            'total_devices': 'Dispositivi totali',
+            'online_bots': 'Bot online',
+            'commands': 'Comandi',
+            'system_active': 'Sistema attivo',
+            'refresh': 'Aggiorna',
+            'export': 'Esporta',
+            'delete': 'Elimina',
+            'save': 'Salva',
+            'cancel': 'Annulla',
+            'search': 'Cerca...',
+            'no_data': 'Nessun dato disponibile',
+            'loading': 'Caricamento...',
+            'error': 'Errore',
+            'success': 'Successo'
+        },
+        'en': {
+            'dashboard': 'Dashboard',
+            'devices': 'Devices',
+            'captures': 'Captures',
+            'analytics': 'Analytics',
+            'logs': 'Logs',
+            'settings': 'Settings',
+            'logout': 'Logout',
+            'total_devices': 'Total Devices',
+            'online_bots': 'Online Bots',
+            'commands': 'Commands',
+            'system_active': 'System Active',
+            'refresh': 'Refresh',
+            'export': 'Export',
+            'delete': 'Delete',
+            'save': 'Save',
+            'cancel': 'Cancel',
+            'search': 'Search...',
+            'no_data': 'No data available',
+            'loading': 'Loading...',
+            'error': 'Error',
+            'success': 'Success'
+        }
+    }
+    return jsonify(translations.get(lang, translations['it']))
+
 # ============ SICUREZZA ============
 @app.route('/api/change_password', methods=['POST'])
 @login_required

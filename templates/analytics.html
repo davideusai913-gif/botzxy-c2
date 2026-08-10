@@ -7,14 +7,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- TEMA APPLICATO IMMEDIATAMENTE -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
-            background: #0b0b1a;
-            color: #e2e8f0;
+            background: var(--bg-primary, #0b0b1a);
+            color: var(--text-primary, #e2e8f0);
             min-height: 100vh;
             display: flex;
+        }
+        .sidebar, .card, .settings-card, .stat-card, .device-card, .capture-item, .stat-box, .chart-card, .table-card {
+            background: var(--bg-card, rgba(18,18,40,0.45));
+            border-color: var(--border-color, rgba(255,255,255,0.04));
         }
         .sidebar {
             width: 220px;
@@ -79,8 +85,10 @@
         .btn-ghost:hover { background: rgba(139,92,246,0.08); color: #fff; border-color: rgba(139,92,246,0.2); }
 
         .card {
-            background: rgba(18,18,40,0.45); backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.04); border-radius: 24px;
+            background: var(--bg-card, rgba(18,18,40,0.45));
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color, rgba(255,255,255,0.04));
+            border-radius: 24px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         }
@@ -93,8 +101,9 @@
             margin-bottom: 1.5rem;
         }
         .stat-box {
-            background: rgba(18,18,40,0.3); border-radius: 16px; padding: 1.2rem;
-            text-align: center; border: 1px solid rgba(255,255,255,0.04);
+            background: var(--bg-card, rgba(18,18,40,0.3));
+            border-radius: 16px; padding: 1.2rem;
+            text-align: center; border: 1px solid var(--border-color, rgba(255,255,255,0.04));
         }
         .stat-box .number { font-size: 2rem; font-weight: 700; }
         .stat-box .label { font-size: 0.65rem; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-top: 0.2rem; }
@@ -130,18 +139,9 @@
             .stats-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
-</head>
-<head>
-    <!-- ... -->
-    <style>
-        body { background: var(--bg-primary, #0b0b1a); color: var(--text-primary, #e2e8f0); }
-        .sidebar, .card, .settings-card, .stat-card, .device-card, .capture-item, .stat-box, .chart-card, .table-card {
-            background: var(--bg-card, rgba(18,18,40,0.45));
-            border-color: var(--border-color, rgba(255,255,255,0.04));
-        }
-    </style>
+    
+    <!-- CARICA TEMA E LINGUA PRIMA DEL RENDERING -->
     <script>
-        // Carica tema e lingua DAL LOCALSTORAGE PRIMA del rendering
         (function() {
             const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
             const themes = {
@@ -163,38 +163,36 @@
             document.body.style.color = t.text;
             document.body.className = 'theme-' + savedTheme;
             
-            // Lingua
             const savedLang = localStorage.getItem('botzxy_language') || 'it';
             document.documentElement.lang = savedLang;
         })();
     </script>
 </head>
-<script src="/static/js/config.js"></script>
 <body>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
     <aside class="sidebar" id="sidebar">
         <div class="logo"><i class="fas fa-robot"></i> Bot<span>ZXY</span></div>
         <nav class="nav">
-            <a href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="/devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
-            <a href="/captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
-            <a href="#" class="active"><i class="fas fa-chart-pie"></i> Analytics</a>
-            <a href="/logs"><i class="fas fa-history"></i> Logs</a>
-            <a href="/settings"><i class="fas fa-cog"></i> Settings</a>
-            <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="/dashboard" data-i18n="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="/devices" data-i18n="devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
+            <a href="/captures" data-i18n="captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
+            <a href="#" class="active" data-i18n="analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
+            <a href="/logs" data-i18n="logs"><i class="fas fa-history"></i> Logs</a>
+            <a href="/settings" data-i18n="settings"><i class="fas fa-cog"></i> Settings</a>
+            <a href="/logout" data-i18n="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </nav>
-        <div class="footer-sidebar"><span class="status-dot"></span> Sistema attivo · <span id="footerTime"></span></div>
+        <div class="footer-sidebar"><span class="status-dot"></span> <span data-i18n="system_active">Sistema attivo</span> · <span id="footerTime"></span></div>
     </aside>
 
     <main class="main">
         <div class="topbar">
             <div style="display:flex;align-items:center;gap:0.8rem;">
                 <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-                <h1>Analytics <span>| Statistiche reali</span></h1>
+                <h1><span data-i18n="analytics">Analytics</span> <span>| <span data-i18n="stats">Statistiche reali</span></span></h1>
             </div>
             <div class="actions">
-                <button class="btn-ghost" onclick="refreshAnalytics()"><i class="fas fa-sync"></i> Aggiorna</button>
+                <button class="btn-ghost" onclick="refreshAnalytics()"><i class="fas fa-sync"></i> <span data-i18n="refresh">Aggiorna</span></button>
             </div>
         </div>
 
@@ -202,27 +200,27 @@
         <div class="stats-grid" id="statsGrid">
             <div class="stat-box">
                 <div class="number" style="color:#8b5cf6;" id="totalDevices">0</div>
-                <div class="label">Dispositivi totali</div>
+                <div class="label" data-i18n="total_devices">Dispositivi totali</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#34d399;" id="onlineDevices">0</div>
-                <div class="label">Online</div>
+                <div class="label" data-i18n="online">Online</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#f472b6;" id="totalCaptures">0</div>
-                <div class="label">Catture totali</div>
+                <div class="label" data-i18n="captures">Catture totali</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#fbbf24;" id="totalCommands">0</div>
-                <div class="label">Comandi eseguiti</div>
+                <div class="label" data-i18n="commands">Comandi eseguiti</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#60a5fa;" id="activeBots">0</div>
-                <div class="label">Bot attivi (oggi)</div>
+                <div class="label" data-i18n="active_bots">Bot attivi (oggi)</div>
             </div>
             <div class="stat-box">
                 <div class="number" style="color:#f87171;" id="offlineDevices">0</div>
-                <div class="label">Offline</div>
+                <div class="label" data-i18n="offline">Offline</div>
             </div>
         </div>
 
@@ -230,13 +228,13 @@
         <div class="chart-row">
             <div class="card">
                 <div class="header">
-                    <h2><i class="fas fa-chart-line"></i> Attività dispositivi (7 giorni)</h2>
+                    <h2><i class="fas fa-chart-line"></i> <span data-i18n="activity_7d">Attività dispositivi (7 giorni)</span></h2>
                 </div>
                 <canvas id="activityChart"></canvas>
             </div>
             <div class="card">
                 <div class="header">
-                    <h2><i class="fas fa-chart-pie"></i> Piattaforme</h2>
+                    <h2><i class="fas fa-chart-pie"></i> <span data-i18n="platforms">Piattaforme</span></h2>
                 </div>
                 <canvas id="platformChart"></canvas>
             </div>
@@ -245,7 +243,7 @@
         <!-- Tipi di cattura reali -->
         <div class="card">
             <div class="header">
-                <h2><i class="fas fa-chart-bar"></i> Tipi di cattura</h2>
+                <h2><i class="fas fa-chart-bar"></i> <span data-i18n="capture_types">Tipi di cattura</span></h2>
             </div>
             <canvas id="captureTypeChart" style="max-height:250px;"></canvas>
         </div>
@@ -253,16 +251,18 @@
         <!-- Top dispositivi -->
         <div class="card">
             <div class="header">
-                <h2><i class="fas fa-trophy"></i> Dispositivi più attivi</h2>
+                <h2><i class="fas fa-trophy"></i> <span data-i18n="top_devices">Dispositivi più attivi</span></h2>
             </div>
             <ul class="top-devices-list" id="topDevicesList">
                 <li style="text-align:center;padding:1rem;color:rgba(255,255,255,0.1);">
-                    <i class="fas fa-spinner fa-spin"></i> Caricamento...
+                    <i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Caricamento...</span>
                 </li>
             </ul>
         </div>
     </main>
 
+    <!-- CARICA CONFIGURAZIONE E TRADUZIONI -->
+    <script src="/static/js/config.js"></script>
     <script>
         let activityChart = null;
         let platformChart = null;
@@ -409,7 +409,7 @@
                     const list = document.getElementById('topDevicesList');
                     if (!data || data.length === 0) {
                         list.innerHTML = `<li style="text-align:center;padding:1rem;color:rgba(255,255,255,0.1);">
-                            <i class="fas fa-inbox"></i> Nessun dispositivo attivo
+                            <i class="fas fa-inbox"></i> <span data-i18n="no_data">Nessun dispositivo attivo</span>
                         </li>`;
                         return;
                     }
@@ -425,7 +425,7 @@
                                 <span style="font-size:0.6rem;color:rgba(255,255,255,0.1);">${d.platform || 'unknown'}</span>
                             </div>
                             <div class="stats">
-                                ${d.commands_count || 0} comandi · ${d.captures_count || 0} catture
+                                ${d.commands_count || 0} <span data-i18n="commands">comandi</span> · ${d.captures_count || 0} <span data-i18n="captures">catture</span>
                             </div>
                         </li>`;
                     });
@@ -434,7 +434,7 @@
                 .catch(() => {
                     document.getElementById('topDevicesList').innerHTML = `
                         <li style="text-align:center;padding:1rem;color:rgba(255,255,255,0.1);">
-                            <i class="fas fa-exclamation-triangle"></i> Errore caricamento
+                            <i class="fas fa-exclamation-triangle"></i> <span data-i18n="error">Errore caricamento</span>
                         </li>`;
                 });
         }

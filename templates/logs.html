@@ -122,26 +122,44 @@
         @media (max-width: 768px) { .hamburger { display: block; } }
     </style>
 </head>
-<!-- Carica configurazione -->
-<script src="/static/js/config.js"></script>
-<script>
-    // Applica tema e lingua all'avvio
-    document.addEventListener('DOMContentLoaded', function() {
-        // Carica le impostazioni
-        fetch('/api/settings')
-            .then(res => res.json())
-            .then(data => {
-                BotZXYConfig.theme = data.theme || 'dark';
-                BotZXYConfig.language = data.language || 'it';
-                BotZXYConfig.applyTheme();
-                BotZXYConfig.applyLanguage();
-            })
-            .catch(() => {
-                BotZXYConfig.applyTheme();
-                BotZXYConfig.applyLanguage();
-            });
-    });
-</script>
+<head>
+    <!-- ... -->
+    <style>
+        body { background: var(--bg-primary, #0b0b1a); color: var(--text-primary, #e2e8f0); }
+        .sidebar, .card, .settings-card, .stat-card, .device-card, .capture-item, .stat-box, .chart-card, .table-card {
+            background: var(--bg-card, rgba(18,18,40,0.45));
+            border-color: var(--border-color, rgba(255,255,255,0.04));
+        }
+    </style>
+    <script>
+        // Carica tema e lingua DAL LOCALSTORAGE PRIMA del rendering
+        (function() {
+            const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
+            const themes = {
+                'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)', border: 'rgba(255,255,255,0.04)' },
+                'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)', border: 'rgba(0,0,0,0.08)' },
+                'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)', border: 'rgba(59,130,246,0.15)' },
+                'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)', border: 'rgba(52,211,153,0.15)' },
+                'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)', border: 'rgba(139,92,246,0.15)' },
+                'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)', border: 'rgba(245,158,11,0.15)' },
+                'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,136,0.15)' },
+                'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,0,0.15)' }
+            };
+            const t = themes[savedTheme] || themes['dark'];
+            document.documentElement.style.setProperty('--bg-primary', t.bg);
+            document.documentElement.style.setProperty('--text-primary', t.text);
+            document.documentElement.style.setProperty('--bg-card', t.card);
+            document.documentElement.style.setProperty('--border-color', t.border);
+            document.body.style.background = t.bg;
+            document.body.style.color = t.text;
+            document.body.className = 'theme-' + savedTheme;
+            
+            // Lingua
+            const savedLang = localStorage.getItem('botzxy_language') || 'it';
+            document.documentElement.lang = savedLang;
+        })();
+    </script>
+</head>
 <body>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 

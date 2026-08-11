@@ -111,30 +111,48 @@
         @media (max-width:480px) { .stats-grid { grid-template-columns:1fr 1fr; gap:0.4rem; } .stat-card .icon { width:32px; height:32px; font-size:0.9rem; } .stat-card .info .number { font-size:1.2rem; } }
     </style>
     <script>
-        (function() {
-            const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
-            const themes = {
-                'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)', border: 'rgba(255,255,255,0.04)' },
-                'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)', border: 'rgba(0,0,0,0.08)' },
-                'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)', border: 'rgba(59,130,246,0.15)' },
-                'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)', border: 'rgba(52,211,153,0.15)' },
-                'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)', border: 'rgba(139,92,246,0.15)' },
-                'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)', border: 'rgba(245,158,11,0.15)' },
-                'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,136,0.15)' },
-                'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,0,0.15)' }
-            };
-            const t = themes[savedTheme] || themes['dark'];
-            document.documentElement.style.setProperty('--bg-primary', t.bg);
-            document.documentElement.style.setProperty('--text-primary', t.text);
-            document.documentElement.style.setProperty('--bg-card', t.card);
-            document.documentElement.style.setProperty('--border-color', t.border);
+    (function() {
+        const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
+        const themes = {
+            'dark': { bg: '#0b0b1a', text: '#e2e8f0', card: 'rgba(18,18,40,0.45)', border: 'rgba(255,255,255,0.04)' },
+            'light': { bg: '#f1f5f9', text: '#0a0a1a', card: 'rgba(255,255,255,0.85)', border: 'rgba(0,0,0,0.08)' },
+            'blue': { bg: '#0a1a3a', text: '#e2e8f0', card: 'rgba(10,26,58,0.7)', border: 'rgba(59,130,246,0.15)' },
+            'green': { bg: '#0a1a0a', text: '#e2e8f0', card: 'rgba(10,26,10,0.7)', border: 'rgba(52,211,153,0.15)' },
+            'purple': { bg: '#1a0a2a', text: '#e2e8f0', card: 'rgba(26,10,42,0.7)', border: 'rgba(139,92,246,0.15)' },
+            'orange': { bg: '#2a1a0a', text: '#e2e8f0', card: 'rgba(42,26,10,0.7)', border: 'rgba(245,158,11,0.15)' },
+            'cyber': { bg: '#0a0a0a', text: '#00ff88', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,136,0.15)' },
+            'matrix': { bg: '#0a0a0a', text: '#00ff00', card: 'rgba(0,0,0,0.7)', border: 'rgba(0,255,0,0.15)' }
+        };
+        const t = themes[savedTheme] || themes['dark'];
+        
+        // Applica variabili CSS
+        document.documentElement.style.setProperty('--bg-primary', t.bg);
+        document.documentElement.style.setProperty('--text-primary', t.text);
+        document.documentElement.style.setProperty('--bg-card', t.card);
+        document.documentElement.style.setProperty('--border-color', t.border);
+        
+        // Applica al body (solo se esiste)
+        if (document.body) {
             document.body.style.background = t.bg;
             document.body.style.color = t.text;
             document.body.className = 'theme-' + savedTheme;
-            const savedLang = localStorage.getItem('botzxy_language') || 'it';
-            document.documentElement.lang = savedLang;
-        })();
-    </script>
+        }
+        
+        // Applica agli elementi esistenti (solo se esistono)
+        const selectors = ['.card', '.settings-card', '.stat-card', '.device-card', '.capture-item', '.stat-box', '.chart-card', '.table-card', '.sidebar'];
+        selectors.forEach(function(selector) {
+            document.querySelectorAll(selector).forEach(function(el) {
+                if (el) {
+                    el.style.background = t.card;
+                    el.style.borderColor = t.border;
+                }
+            });
+        });
+        
+        const savedLang = localStorage.getItem('botzxy_language') || 'it';
+        document.documentElement.lang = savedLang;
+    })();
+</script>
 </head>
 <body>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>

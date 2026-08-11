@@ -198,21 +198,24 @@ const BotZXY = {
         
         localStorage.setItem('botzxy_theme', theme);
     },
-    
     applyLanguage: function() {
-        const t = this.translations;
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (t[key] !== undefined && t[key] !== null) {
+    const t = this.translations;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key] !== undefined && t[key] !== null) {
+            // NON sovrascrivere il contenuto se contiene icone
+            // Mantieni i nodi figli (icone) e cambia solo il testo
+            const textNode = Array.from(el.childNodes).find(node => node.nodeType === 3);
+            if (textNode) {
+                textNode.textContent = t[key];
+            } else {
+                // Fallback: solo se non ci sono nodi figli
                 el.textContent = t[key];
             }
-        });
-        localStorage.setItem('botzxy_language', this.language);
-    },
-    
-    t: function(key) {
-        return this.translations[key] || key;
-    }
+        }
+    });
+    localStorage.setItem('botzxy_language', this.language);
+}
 };
 
 // Carica configurazione all'avvio

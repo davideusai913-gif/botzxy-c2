@@ -527,9 +527,9 @@ def get_top_devices():
         conn = get_db()
         data = conn.execute('''
             SELECT 
-                device_id, 
-                hostname, 
-                platform, 
+                devices.device_id, 
+                devices.hostname, 
+                devices.platform, 
                 COUNT(commands.id) as commands_count,
                 (SELECT COUNT(*) FROM captures WHERE captures.device_id = devices.device_id) as captures_count
             FROM devices
@@ -539,7 +539,17 @@ def get_top_devices():
             LIMIT 10
         ''').fetchall()
         conn.close()
-        return jsonify([dict(d) for d in data])
+        
+        result = []
+        for row in data:
+            result.append({
+                'device_id': row['device_id'],
+                'hostname': row['hostname'] or 'Unknown',
+                'platform': row['platform'] or 'unknown',
+                'commands_count': row['commands_count'] or 0,
+                'captures_count': row['captures_count'] or 0
+            })
+        return jsonify(result)
     except Exception as e:
         print(f"[-] Top devices error: {e}")
         return jsonify([]), 500

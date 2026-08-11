@@ -5,25 +5,33 @@ const BotZXY = {
     translations: {},
     
     load: function() {
-        return fetch('/api/settings')
-            .then(res => {
-                if (!res.ok) throw new Error('Network error');
-                return res.json();
-            })
-            .then(data => {
-                this.theme = data.theme || 'dark';
-                this.language = data.language || 'it';
-                this.applyTheme();
-                this.loadTranslations(this.language);
-                return data;
-            })
-            .catch(() => {
-                this.theme = localStorage.getItem('botzxy_theme') || 'dark';
-                this.language = localStorage.getItem('botzxy_language') || 'it';
-                this.applyTheme();
-                this.loadTranslations(this.language);
-            });
-    },
+    return fetch('/api/settings')
+        .then(function(res) {
+            if (!res.ok) throw new Error('Network error');
+            return res.json();
+        })
+        .then(function(data) {
+            // Salva nel localStorage
+            if (data.theme) {
+                this.theme = data.theme;
+                localStorage.setItem('botzxy_theme', data.theme);
+            }
+            if (data.language) {
+                this.language = data.language;
+                localStorage.setItem('botzxy_language', data.language);
+            }
+            this.applyTheme();
+            this.loadTranslations(this.language);
+            return data;
+        })
+        .catch(function() {
+            // Fallback
+            this.theme = localStorage.getItem('botzxy_theme') || 'dark';
+            this.language = localStorage.getItem('botzxy_language') || 'it';
+            this.applyTheme();
+            this.loadTranslations(this.language);
+        }.bind(this));
+},
     
     loadTranslations: function(lang) {
         fetch('/api/translations?lang=' + lang)
@@ -199,23 +207,51 @@ const BotZXY = {
         localStorage.setItem('botzxy_theme', theme);
     },
     applyLanguage: function() {
-    const t = this.translations;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
+    var t = this.translations;
+    var elements = document.querySelectorAll('[data-i18n]');
+    
+    for (var i = 0; i < elements.length; i++) {
+        var el = elements[i];
+        var key = el.getAttribute('data-i18n');
         if (t[key] !== undefined && t[key] !== null) {
-            // NON sovrascrivere il contenuto se contiene icone
-            // Mantieni i nodi figli (icone) e cambia solo il testo
-            const textNode = Array.from(el.childNodes).find(node => node.nodeType === 3);
-            if (textNode) {
-                textNode.textContent = t[key];
+            // Preserva le icone
+            var icon = el.querySelector('i');
+            if (icon) {
+                // Cambia solo il testo, mantieni l'icona
+                var textNode = Array.from(el.childNodes).find(function(node) {
+                    return node.nodeType === 3;
+                });
+                if (textNode) {
+                    textNode.textContent = t[key];
+                } else {
+                    el.appendChild(document.createTextNode(' ' + t[key]));
+                }
             } else {
-                // Fallback: solo se non ci sono nodi figli
                 el.textContent = t[key];
             }
         }
-    });
+    }
+    
     localStorage.setItem('botzxy_language', this.language);
-}
+},
+loadTranslations: function(lang) {
+    console.log('[BotZXY] Caricamento traduzioni per:', lang);
+    fetch('/api/translations?lang=' + lang)
+        .then(function(res) {
+            if (!res.ok) throw new Error('Network error');
+            return res.json();
+        })
+        .then(function(data) {
+            console.log('[BotZXY] Traduzioni ricevute:', Object.keys(data).length, 'chiavi');
+            this.translations = data;
+            this.applyLanguage();
+        }.bind(this))
+        .catch(function(err) {
+            console.error('[BotZXY] Errore caricamento traduzioni:', err);
+            this.translations = this.getFallbackTranslations(lang);
+            this.applyLanguage();
+        }.bind(this));
+},
 };
 
 // Carica configurazione all'avvio

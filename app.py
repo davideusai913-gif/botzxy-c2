@@ -119,6 +119,24 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+
+        print(f"[DEBUG] Tentativo login: {username}")
+        
+        user = get_user_by_username(username)
+        
+        if user:
+            print(f"[DEBUG] Utente trovato: {user['username']}")
+            print(f"[DEBUG] Hash nel DB: {user['password_hash']}")
+            print(f"[DEBUG] Hash calcolato: {hashlib.sha256(password.encode()).hexdigest()}")
+        else:
+            print(f"[DEBUG] Utente NON trovato: {username}")
+        
+        if user and hashlib.sha256(password.encode()).hexdigest() == user['password_hash']:
+            print("[DEBUG] Login OK!")
+            login_user(User(user['id'], user['username'], user['api_key']))
+            return render_template('dashboard.html')
+        else:
+            print("[DEBUG] Login FALLITO!")
         
         if username in LOGIN_ATTEMPTS:
             user_attempts = LOGIN_ATTEMPTS[username]

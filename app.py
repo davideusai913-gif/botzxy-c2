@@ -14,6 +14,18 @@ from supabase import create_client, Client
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY')
 
+# Pulisci l'URL
+if SUPABASE_URL:
+    # Rimuovi eventuali spazi
+    SUPABASE_URL = SUPABASE_URL.strip()
+    # Rimuovi /rest/v1/ se presente
+    if SUPABASE_URL.endswith('/rest/v1/'):
+        SUPABASE_URL = SUPABASE_URL[:-9]
+    # Assicura che inizi con https://
+    if not SUPABASE_URL.startswith('https://'):
+        SUPABASE_URL = 'https://' + SUPABASE_URL
+    print(f"[+] URL Supabase: {SUPABASE_URL}")
+
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("⚠️ ATTENZIONE: SUPABASE_URL o SUPABASE_KEY non configurati!")
     print("I dati non saranno persistenti su Render!")

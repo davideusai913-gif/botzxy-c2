@@ -859,7 +859,7 @@ def change_password():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/logout_all', methods=['POST'])
+@app.route('/api/logout_all', methods(['POST'])
 @login_required
 def logout_all():
     if not supabase:
@@ -894,7 +894,6 @@ def create_admin_supabase():
     if not supabase:
         return
     try:
-        # Verifica se admin esiste
         existing = supabase.table('users').select('*').eq('username', 'BotZXY-Admin').execute()
         if not existing.data:
             api_key = hashlib.sha256(os.urandom(32)).hexdigest()
@@ -910,6 +909,9 @@ def create_admin_supabase():
             print('[+] Admin creato in Supabase: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
     except Exception as e:
         print(f"[-] Admin creation error: {e}")
+
+# ⬇️⬇️⬇️ CREAZIONE ADMIN ALL'AVVIO ⬇️⬇️⬇️
+create_admin_supabase()
 
 # ============ ERROR HANDLER ============
 @app.errorhandler(404)
@@ -928,6 +930,5 @@ def handle_exception(e):
 
 # ============ MAIN ============
 if __name__ == '__main__':
-    create_admin_supabase()
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port, debug=False)

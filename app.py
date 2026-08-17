@@ -890,6 +890,27 @@ def setup_admin_user():
     except Exception as e:
         print(f"[-] Admin creation error: {e}")
 
+def create_admin_supabase():
+    if not supabase:
+        return
+    try:
+        # Verifica se admin esiste
+        existing = supabase.table('users').select('*').eq('username', 'BotZXY-Admin').execute()
+        if not existing.data:
+            api_key = hashlib.sha256(os.urandom(32)).hexdigest()
+            password_hash = hashlib.sha256('35£t}nSBzoA%M#4T\e<'.encode()).hexdigest()
+            supabase.table('users').insert({
+                'username': 'BotZXY-Admin',
+                'password_hash': password_hash,
+                'api_key': api_key,
+                'theme': 'dark',
+                'language': 'it',
+                'notifications': 'on'
+            }).execute()
+            print('[+] Admin creato in Supabase: BotZXY-Admin / 35£t}nSBzoA%M#4T\e<')
+    except Exception as e:
+        print(f"[-] Admin creation error: {e}")
+
 # ============ ERROR HANDLER ============
 @app.errorhandler(404)
 def not_found(error):
@@ -907,6 +928,6 @@ def handle_exception(e):
 
 # ============ MAIN ============
 if __name__ == '__main__':
-    setup_admin_user()
+    create_admin_supabase()
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port, debug=False)

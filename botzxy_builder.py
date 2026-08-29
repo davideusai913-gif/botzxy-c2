@@ -106,7 +106,25 @@ def build_windows(c2_url, obfuscate=True):
             obf_path = client_path
     else:
         obf_path = client_path
-    
+
+    # Self-check: l'offuscamento non deve produrre codice non valido
+    try:
+        import zlib as _zl, base64 as _b64, re as _re
+        with open(obf_path, 'r', encoding='utf-8') as _f:
+            _obf = _f.read()
+        _mm = _re.search(r'base64.b64decode\("""([^"]+)"""\)', _obf)
+        if _mm:
+            _inner = _zl.decompress(_b64.b64decode(_mm.group(1))).decode('utf-8')
+            compile(_inner, '<obf_inner>', 'exec')
+            if _re.search(r'[A-Za-z]_bzx_dec', _inner):
+                raise SyntaxError('leaked prefixed helper call (f/r/b + _bzx_dec)')
+        else:
+            compile(_obf, obf_path, 'exec')
+    except Exception as _e:
+        print_error(f"Self-check offuscamento FALLITO: {_e}")
+        print_error("Build annullato per evitare un .exe non eseguibile.")
+        return False
+
     # Leggi il payload
     with open(obf_path, 'r') as f:
         content = f.read()

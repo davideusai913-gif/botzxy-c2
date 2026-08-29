@@ -28,3 +28,21 @@ build/
 .env.*.local
 *.log
 logs/
+
+# ===== Build artifacts / binaries (never commit compiled payloads) =====
+builds/*
+!builds/.gitkeep
+*.exe
+*.apk
+*.ipa
+*.dll
+*.whl
+
+# ===== Local virtualenvs (build environments) =====
+android_build_env/
+botzxy_env/
+apk_build_win/
+
+# ===== OnRender ephemeral / output =====
+*.pyz
+.pyinstaller/

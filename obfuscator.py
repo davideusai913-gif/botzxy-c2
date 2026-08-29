@@ -123,12 +123,12 @@ threading.Thread(target=anti_vm_loop, daemon=True).start()
             key = random.randint(1, 255)
             encrypted = bytes([ord(c) ^ key for c in s])
             encoded = base64.b64encode(encrypted).decode()
-            return f"__dec('{encoded}', {key})"
+            return f"_bzx_dec('{encoded}', {key})"
         
         string_pattern = r'"([^"\\]*(\\.[^"\\]*)*)"|\'([^\'\\]*(\\.[^\'\\]*)*)\''
         
         decrypt_func = '''
-def __dec(s, k):
+def _bzx_dec(s, k):
     try:
         import base64
         d = base64.b64decode(s)
